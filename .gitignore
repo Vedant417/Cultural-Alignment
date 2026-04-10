@@ -144,6 +144,12 @@ ENV/
 env.bak/
 venv.bak/
 
+# Dependency folders
+node_modules/
+
+# Next.js output
+.next/
+
 # Spyder project settings
 .spyderproject
 .spyproject

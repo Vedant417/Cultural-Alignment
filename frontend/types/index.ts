@@ -14,10 +14,10 @@ export interface RegionInfo {
 }
 
 export interface ContentFlags {
-  violence:             "None" | "Mild" | "Moderate" | "High";
-  adult_content:        "None" | "Mild" | "Moderate" | "High";
-  religion_sensitivity: "None" | "Low"  | "Moderate" | "High";
-  drug_glorification:   "None" | "Mild" | "Moderate" | "High";
+  violence:             string;
+  adult_content:        string;
+  religion_sensitivity: string;
+  drug_glorification:   string;
 }
 
 export interface SimilarMovie {
@@ -35,9 +35,30 @@ export interface AnalysisResult {
 }
 
 export interface AlignmentDocument {
-  id:          string;
-  searched_at: string;
-  movie:       MovieInfo;
-  region:      RegionInfo;
-  result:      AnalysisResult;
+  id:            string;
+  searched_at:   string;
+  movie:         MovieInfo;
+  origin_region: RegionInfo;
+  target_region: string;
+  result:        AnalysisResult;
+  cached?:       boolean;
+}
+
+export interface RegionScore {
+  region:  string;
+  score:   number | null;
+  label:   string;
+  cached:  boolean;
+}
+
+export interface MultiAnalyzeResponse {
+  movie:  MovieInfo;
+  scores: RegionScore[];
+}
+
+// Country option for the selector
+export interface CountryOption {
+  name:  string;
+  flag:  string;
+  group: string;   // "South Asia" | "East Asia" | "Europe" | "Americas" | "Middle East" | "Oceania"
 }

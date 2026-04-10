@@ -1,95 +1,127 @@
 import { AnalysisResult } from "@/types";
 
-function scoreStyle(score: number | null) {
+function getStyle(score: number | null) {
   if (score === null) return {
-    badge: "bg-slate-700",
-    pill:  "bg-slate-800 text-slate-300 border-slate-600",
-    glow:  "",
+    badge: { background: "#334155" },
+    pill:  { background: "#1e293b", color: "#94a3b8", border: "1px solid #334155" },
   };
-  if (score >= 7) return {
-    badge: "bg-gradient-to-br from-emerald-500 to-emerald-700",
-    pill:  "bg-emerald-950 text-emerald-400 border-emerald-700",
-    glow:  "shadow-[0_0_24px_rgba(16,185,129,0.3)]",
+  if (score >= 8) return {
+    badge: { background: "linear-gradient(135deg,#10b981,#059669)",
+             boxShadow: "0 4px 20px rgba(16,185,129,0.35)" },
+    pill:  { background: "#064e3b", color: "#6ee7b7", border: "1px solid #10b981" },
+  };
+  if (score >= 6) return {
+    badge: { background: "linear-gradient(135deg,#f59e0b,#d97706)",
+             boxShadow: "0 4px 20px rgba(245,158,11,0.35)" },
+    pill:  { background: "#451a03", color: "#fcd34d", border: "1px solid #f59e0b" },
   };
   if (score >= 4) return {
-    badge: "bg-gradient-to-br from-amber-500 to-amber-700",
-    pill:  "bg-amber-950 text-amber-400 border-amber-700",
-    glow:  "shadow-[0_0_24px_rgba(245,158,11,0.3)]",
+    badge: { background: "linear-gradient(135deg,#f97316,#ea580c)",
+             boxShadow: "0 4px 20px rgba(249,115,22,0.35)" },
+    pill:  { background: "#431407", color: "#fdba74", border: "1px solid #f97316" },
   };
   return {
-    badge: "bg-gradient-to-br from-red-500 to-red-700",
-    pill:  "bg-red-950 text-red-400 border-red-700",
-    glow:  "shadow-[0_0_24px_rgba(239,68,68,0.3)]",
+    badge: { background: "linear-gradient(135deg,#ef4444,#dc2626)",
+             boxShadow: "0 4px 20px rgba(239,68,68,0.35)" },
+    pill:  { background: "#450a0a", color: "#fca5a5", border: "1px solid #ef4444" },
   };
 }
 
-interface Props {
-  result: AnalysisResult;
-  region: string;
-}
-
-export default function ScoreBadge({ result, region }: Props) {
+export default function ScoreBadge({
+  result,
+  targetRegion,
+  cached,
+}: {
+  result:       AnalysisResult;
+  targetRegion: string;
+  cached?:      boolean;
+}) {
   const { score, label, reason, audience_note } = result;
-  const s = scoreStyle(score);
+  const s = getStyle(score);
 
   return (
-    <div className="bg-[#1e2130] border border-[#2d3348] rounded-2xl overflow-hidden">
+    <div style={{ background: "#141824", border: "1px solid #252d45", borderRadius: "16px", overflow: "hidden" }}>
 
-      {/* ── Score / Label / Region row ── */}
-      <div className="grid grid-cols-3 divide-x divide-[#2d3348] border-b border-[#2d3348]">
-
-        <Cell label="Score">
-          <div className={`w-16 h-16 rounded-full flex items-center justify-center
-                           text-white font-extrabold text-lg ${s.badge} ${s.glow}`}
-               style={{ fontFamily: "var(--font-sora), sans-serif" }}>
+      {/* ── Top row: Score / Alignment / Region ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr",
+                    borderBottom: "1px solid #252d45" }}>
+        {/* Score */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
+                      justifyContent: "center", padding: "24px 8px", gap: "10px",
+                      borderRight: "1px solid #252d45" }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                      textTransform: "uppercase", letterSpacing: "0.1em" }}>Score</p>
+          <div style={{
+            ...s.badge,
+            width: "68px", height: "68px", borderRadius: "50%",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontFamily: "Sora, sans-serif", fontWeight: 800, fontSize: "18px", color: "#fff",
+          }}>
             {score !== null ? `${score}/10` : "—"}
           </div>
-        </Cell>
+          {cached && (
+            <span style={{ fontSize: "10px", color: "#6366f1", background: "#1e1f4a",
+                           border: "1px solid #312e81", borderRadius: "4px", padding: "1px 6px" }}>
+              cached
+            </span>
+          )}
+        </div>
 
-        <Cell label="Alignment">
-          <span className={`px-3 py-1 rounded-full text-xs font-bold border ${s.pill}`}>
+        {/* Alignment */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
+                      justifyContent: "center", padding: "24px 8px", gap: "10px",
+                      borderRight: "1px solid #252d45" }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                      textTransform: "uppercase", letterSpacing: "0.1em" }}>Alignment</p>
+          <span style={{
+            ...s.pill,
+            padding: "4px 12px", borderRadius: "99px",
+            fontSize: "12px", fontWeight: 700,
+          }}>
             {label || "Unknown"}
           </span>
-        </Cell>
+        </div>
 
-        <Cell label="Region">
-          <span className="text-sm font-bold text-slate-200 text-center px-2"
-                style={{ fontFamily: "var(--font-sora), sans-serif" }}>
-            {region || "Unknown"}
+        {/* Region */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center",
+                      justifyContent: "center", padding: "24px 8px", gap: "10px" }}>
+          <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                      textTransform: "uppercase", letterSpacing: "0.1em" }}>Region</p>
+          <span style={{ fontFamily: "Sora, sans-serif", fontWeight: 700, fontSize: "13px",
+                         color: "#f0f4ff", textAlign: "center" }}>
+            {targetRegion}
           </span>
-        </Cell>
-
+        </div>
       </div>
 
-      {/* ── Analysis reason ── */}
-      <div className="p-5 border-b border-[#2d3348]">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+      {/* ── Reason ── */}
+      <div style={{ padding: "20px", borderBottom: "1px solid #252d45" }}>
+        <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                    textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>
           Analysis
         </p>
-        <div className="border-l-4 border-indigo-500 pl-4 py-3 pr-3
-                        bg-[#161926] rounded-r-xl text-slate-300 text-sm leading-relaxed">
+        <div style={{
+          borderLeft: "3px solid #6366f1", paddingLeft: "14px", paddingTop: "10px",
+          paddingBottom: "10px", paddingRight: "12px",
+          background: "#0d0f18", borderRadius: "0 10px 10px 0",
+          fontSize: "14px", color: "#c8d3ea", lineHeight: 1.7,
+        }}>
           {reason || "No analysis available."}
         </div>
       </div>
 
       {/* ── Audience note ── */}
       {audience_note && (
-        <div className="px-5 pb-5 pt-4">
-          <div className="bg-indigo-950/30 border border-indigo-900/50 rounded-xl
-                          px-4 py-3 text-sm text-indigo-300 italic leading-relaxed">
+        <div style={{ padding: "16px 20px" }}>
+          <div style={{
+            background: "rgba(99,102,241,0.08)", border: "1px solid rgba(99,102,241,0.2)",
+            borderRadius: "10px", padding: "12px 14px",
+            fontSize: "13px", color: "#a5b4fc", fontStyle: "italic", lineHeight: 1.6,
+          }}>
             👥 {audience_note}
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-function Cell({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-6 gap-3 px-2">
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{label}</p>
-      {children}
     </div>
   );
 }

@@ -1,86 +1,108 @@
+"use client";
 import { AlignmentDocument } from "@/types";
-import { Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { deleteAnalysis } from "@/lib/api";
-import { useState } from "react";
+import { deleteAnalysis }     from "@/lib/api";
+import { useRouter }          from "next/navigation";
+import { useState }           from "react";
+
+function scoreColor(score: number | null) {
+  if (score === null) return "#8896b3";
+  if (score >= 8)    return "#10b981";
+  if (score >= 6)    return "#f59e0b";
+  if (score >= 4)    return "#f97316";
+  return                    "#ef4444";
+}
 
 export default function HistoryTable({ data: initial }: { data: AlignmentDocument[] }) {
-  const router = useRouter();
-  const [data, setData]   = useState(initial);
-  const [busy, setBusy]   = useState<string | null>(null);
+  const [data, setData] = useState(initial);
+  const [busy, setBusy] = useState<string | null>(null);
+  const router          = useRouter();
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!confirm("Delete this analysis?")) return;
     setBusy(id);
     await deleteAnalysis(id);
-    setData((d) => d.filter((row) => row.id !== id));
+    setData((d) => d.filter((r) => r.id !== id));
     setBusy(null);
     router.refresh();
   };
 
   if (!data.length) {
     return (
-      <div className="text-center text-slate-500 py-20 text-sm bg-[#1e2130] border border-[#2d3348] rounded-2xl">
-        No analyses yet. Go to <strong className="text-slate-400">Analyze</strong> and search for a movie.
+      <div style={{
+        background: "#141824", border: "1px solid #252d45", borderRadius: "16px",
+        padding: "60px 24px", textAlign: "center", color: "#8896b3", fontSize: "14px",
+      }}>
+        No analyses yet. Go to <strong style={{ color: "#c8d3ea" }}>Analyze</strong> to get started.
       </div>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-2xl border border-[#2d3348]">
-      <table className="w-full text-sm">
+    <div style={{ overflowX: "auto", borderRadius: "16px", border: "1px solid #252d45" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "14px" }}>
         <thead>
-          <tr className="bg-[#161926] text-xs text-slate-500 uppercase tracking-widest border-b border-[#2d3348]">
-            <th className="px-5 py-4 text-left">Movie</th>
-            <th className="px-5 py-4 text-left">Region</th>
-            <th className="px-5 py-4 text-left">Score</th>
-            <th className="px-5 py-4 text-left">Alignment</th>
-            <th className="px-5 py-4 text-left">Date</th>
-            <th className="px-5 py-4 text-left"></th>
+          <tr style={{ background: "#0d0f18", borderBottom: "1px solid #252d45" }}>
+            {["Movie", "Target Region", "Score", "Label", "Date", ""].map((h) => (
+              <th key={h} style={{
+                padding: "14px 18px", textAlign: "left",
+                fontSize: "11px", fontWeight: 700, color: "#8896b3",
+                textTransform: "uppercase", letterSpacing: "0.08em",
+              }}>
+                {h}
+              </th>
+            ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-[#2d3348]">
-          {data.map((row) => {
-            const score = row.result.score;
-            const scoreColor =
-              score === null   ? "text-slate-400" :
-              score >= 7       ? "text-emerald-400" :
-              score >= 4       ? "text-amber-400"   :
-                                 "text-red-400";
-            return (
-              <tr
-                key={row.id}
-                onClick={() => router.push(`/?id=${row.id}`)}
-                className="bg-[#1e2130] hover:bg-[#252a3d] cursor-pointer transition-colors"
-              >
-                <td className="px-5 py-4 font-semibold text-slate-100">
-                  {row.movie.title}
-                </td>
-                <td className="px-5 py-4 text-slate-400">
-                  {row.region.region}
-                </td>
-                <td className={`px-5 py-4 font-bold ${scoreColor}`}>
-                  {score !== null ? `${score}/10` : "—"}
-                </td>
-                <td className="px-5 py-4 text-slate-300">
-                  {row.result.label}
-                </td>
-                <td className="px-5 py-4 text-slate-500">
-                  {new Date(row.searched_at).toLocaleDateString()}
-                </td>
-                <td className="px-5 py-4">
-                  <button
-                    onClick={(e) => handleDelete(row.id, e)}
-                    disabled={busy === row.id}
-                    className="text-slate-600 hover:text-red-400 transition-colors p-1 rounded disabled:opacity-40"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            );
-          })}
+        <tbody>
+          {data.map((row) => (
+            <tr
+              key={row.id}
+              onClick={() => {}}
+              style={{
+                background:   "#141824",
+                borderBottom: "1px solid #1a1f30",
+                cursor:       "default",
+                transition:   "background 0.15s",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "#1a1f30")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "#141824")}
+            >
+              <td style={{ padding: "14px 18px", fontWeight: 600, color: "#f0f4ff" }}>
+                {row.movie.title}
+              </td>
+              <td style={{ padding: "14px 18px", color: "#8896b3" }}>
+                {row.target_region}
+              </td>
+              <td style={{ padding: "14px 18px", fontWeight: 700,
+                           color: scoreColor(row.result.score) }}>
+                {row.result.score !== null ? `${row.result.score}/10` : "—"}
+              </td>
+              <td style={{ padding: "14px 18px", color: "#c8d3ea" }}>
+                {row.result.label}
+              </td>
+              <td style={{ padding: "14px 18px", color: "#8896b3" }}>
+                {new Date(row.searched_at).toLocaleDateString()}
+              </td>
+              <td style={{ padding: "14px 18px" }}>
+                <button
+                  onClick={(e) => handleDelete(row.id, e)}
+                  disabled={busy === row.id}
+                  style={{
+                    background: "none", border: "none",
+                    color: "#334155", cursor: busy === row.id ? "not-allowed" : "pointer",
+                    fontSize: "16px", lineHeight: 1, padding: "4px",
+                    opacity: busy === row.id ? 0.4 : 1,
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#334155")}
+                  title="Delete"
+                >
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

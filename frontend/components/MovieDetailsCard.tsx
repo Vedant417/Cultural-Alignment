@@ -1,5 +1,4 @@
 import { MovieInfo } from "@/types";
-import Image from "next/image";
 
 const LANGUAGE_MAP: Record<string, string> = {
   en: "English",    hi: "Hindi",      ta: "Tamil",
@@ -11,40 +10,52 @@ const LANGUAGE_MAP: Record<string, string> = {
   tr: "Turkish",
 };
 
-export default function MovieDetailsCard({ movie }: { movie: MovieInfo }) {
+export default function MovieDetailsCard({
+  movie,
+  originRegion,
+}: {
+  movie:        MovieInfo;
+  originRegion: string;
+}) {
   const lang = LANGUAGE_MAP[movie.language] ?? movie.language.toUpperCase();
 
   return (
-    <div className="bg-[#1e2130] border border-[#2d3348] rounded-2xl overflow-hidden">
+    <div style={{
+      background:   "#141824",
+      border:       "1px solid #252d45",
+      borderRadius: "16px",
+      overflow:     "hidden",
+    }}>
       {/* Poster */}
       {movie.poster_url && (
-        <div className="relative w-full h-60">
-          <Image
+        <div style={{ position: "relative", width: "100%", height: "220px" }}>
+          <img
             src={movie.poster_url}
             alt={movie.title}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#1e2130] via-transparent to-transparent" />
+          <div style={{
+            position:   "absolute", inset: 0,
+            background: "linear-gradient(to top, #141824 0%, transparent 60%)",
+          }} />
         </div>
       )}
 
-      <div className="p-5">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
+      <div style={{ padding: "20px" }}>
+        <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                    textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "10px" }}>
           📽️ Movie Info
         </p>
-        <h2
-          className="font-extrabold text-xl text-slate-100 mb-4 leading-snug"
-          style={{ fontFamily: "var(--font-sora), sans-serif" }}
-        >
+        <h2 style={{ fontFamily: "Sora, sans-serif", fontWeight: 800, fontSize: "20px",
+                     color: "#f0f4ff", marginBottom: "16px", lineHeight: 1.25 }}>
           {movie.title}
         </h2>
-        <hr className="border-[#2d3348] mb-4" />
+        <hr style={{ border: "none", borderTop: "1px solid #252d45", marginBottom: "16px" }} />
 
-        <div className="space-y-3 text-sm">
+        <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
           <Row icon="📅" label="Released" value={movie.release_date || "N/A"} />
           <Row icon="🌐" label="Language"  value={lang} />
+          <Row icon="🎥" label="Origin"    value={originRegion} />
           <Row icon="📖" label="Overview"  value={movie.overview || "No overview available."} />
         </div>
       </div>
@@ -54,10 +65,12 @@ export default function MovieDetailsCard({ movie }: { movie: MovieInfo }) {
 
 function Row({ icon, label, value }: { icon: string; label: string; value: string }) {
   return (
-    <div className="flex gap-3 items-start">
-      <span className="text-base mt-0.5">{icon}</span>
-      <span className="text-slate-500 font-semibold min-w-[80px] flex-shrink-0">{label}</span>
-      <span className="text-slate-300 leading-relaxed">{value}</span>
+    <div style={{ display: "flex", gap: "10px", alignItems: "flex-start", fontSize: "14px" }}>
+      <span style={{ marginTop: "1px" }}>{icon}</span>
+      <span style={{ color: "#8896b3", fontWeight: 600, minWidth: "70px", flexShrink: 0 }}>
+        {label}
+      </span>
+      <span style={{ color: "#c8d3ea", lineHeight: 1.6 }}>{value}</span>
     </div>
   );
 }

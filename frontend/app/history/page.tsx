@@ -1,27 +1,26 @@
-import { getHistory } from "@/lib/api";
-import HistoryTable from "@/components/HistoryTable";
+import { getHistory }    from "@/lib/api";
+import HistoryTable      from "@/components/HistoryTable";
 
-export const dynamic = "force-dynamic"; // Always fetch fresh from MongoDB
+export const dynamic = "force-dynamic";
 
 export default async function HistoryPage() {
   let data: Awaited<ReturnType<typeof getHistory>> = [];
   try {
     data = await getHistory();
   } catch {
-    // Silently handle backend being offline during SSR
+    // backend may be offline
   }
 
   return (
     <div>
-      <div className="mb-8">
-        <h1
-          className="font-extrabold text-3xl text-slate-100 mb-2"
-          style={{ fontFamily: "var(--font-sora), sans-serif" }}
-        >
+      <div style={{ marginBottom:"28px" }}>
+        <h1 style={{ fontFamily:"Sora,sans-serif", fontWeight:800, fontSize:"28px",
+                     color:"#f0f4ff", marginBottom:"6px" }}>
           📜 Analysis History
         </h1>
-        <p className="text-slate-500 text-sm">
-          All past analyses stored in MongoDB — {data.length} record{data.length !== 1 ? "s" : ""} found.
+        <p style={{ color:"#8896b3", fontSize:"14px" }}>
+          All past analyses from MongoDB —{" "}
+          <strong style={{ color:"#c8d3ea" }}>{data.length}</strong> record{data.length !== 1 ? "s" : ""}.
         </p>
       </div>
       <HistoryTable data={data} />

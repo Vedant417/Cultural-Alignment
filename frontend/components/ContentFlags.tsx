@@ -1,35 +1,42 @@
-import { ContentFlags as FlagsType } from "@/types";
+import { ContentFlags as FT } from "@/types";
 
-type Level = FlagsType[keyof FlagsType];
-
-const STYLES: Record<Level, string> = {
-  None:     "bg-emerald-950 text-emerald-400 border-emerald-900",
-  Low:      "bg-emerald-950 text-emerald-400 border-emerald-900",
-  Mild:     "bg-amber-950  text-amber-400  border-amber-900",
-  Moderate: "bg-orange-950 text-orange-400 border-orange-900",
-  High:     "bg-red-950    text-red-400    border-red-900",
+const STYLES: Record<string, { bg: string; color: string; border: string }> = {
+  None:     { bg: "#064e3b", color: "#6ee7b7", border: "#10b981" },
+  Low:      { bg: "#064e3b", color: "#6ee7b7", border: "#10b981" },
+  Mild:     { bg: "#451a03", color: "#fcd34d", border: "#f59e0b" },
+  Moderate: { bg: "#431407", color: "#fdba74", border: "#f97316" },
+  High:     { bg: "#450a0a", color: "#fca5a5", border: "#ef4444" },
 };
 
-const FLAGS: { key: keyof FlagsType; label: string }[] = [
+const FLAGS: { key: keyof FT; label: string }[] = [
   { key: "violence",             label: "⚔️ Violence" },
   { key: "adult_content",        label: "🔞 Adult Content" },
   { key: "religion_sensitivity", label: "🕌 Religion" },
   { key: "drug_glorification",   label: "💊 Drug Glorification" },
 ];
 
-export default function ContentFlags({ flags }: { flags: FlagsType }) {
+export default function ContentFlags({ flags }: { flags: FT }) {
   return (
-    <div className="bg-[#1e2130] border border-[#2d3348] rounded-2xl p-5">
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">
+    <div style={{ background: "#141824", border: "1px solid #252d45",
+                  borderRadius: "16px", padding: "20px" }}>
+      <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                  textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
         Content Flags
       </p>
-      <div className="flex flex-wrap gap-2">
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
         {FLAGS.map(({ key, label }) => {
-          const level = (flags[key] ?? "None") as Level;
-          const cls = STYLES[level] ?? STYLES.None;
+          const level = flags[key] as string || "None";
+          const style = STYLES[level] ?? STYLES["None"];
           return (
-            <span key={key}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border ${cls}`}>
+            <span key={key} style={{
+              background:   style.bg,
+              color:        style.color,
+              border:       `1px solid ${style.border}`,
+              borderRadius: "99px",
+              padding:      "4px 12px",
+              fontSize:     "12px",
+              fontWeight:   600,
+            }}>
               {label}: {level}
             </span>
           );

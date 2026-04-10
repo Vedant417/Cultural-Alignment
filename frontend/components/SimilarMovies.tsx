@@ -1,24 +1,27 @@
 import { SimilarMovie } from "@/types";
-import { Film } from "lucide-react";
 
 export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
-  if (!movies.length) return null;
+  if (!movies?.length) return null;
   return (
-    <div className="bg-[#1e2130] border border-[#2d3348] rounded-2xl p-5">
-      <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">
+    <div style={{ background: "#141824", border: "1px solid #252d45",
+                  borderRadius: "16px", padding: "20px" }}>
+      <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
+                  textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
         🍿 You Might Also Like
       </p>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "10px" }}>
         {movies.slice(0, 3).map((m, i) => (
-          <div
-            key={i}
-            className="bg-[#161926] border border-[#2d3348] rounded-xl p-3.5 space-y-2"
-          >
-            <div className="flex items-start gap-2">
-              <Film className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0 mt-0.5" />
-              <span className="text-sm font-bold text-slate-200 leading-tight">{m.title}</span>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed pl-5">{m.reason}</p>
+          <div key={i} style={{
+            background: "#0d0f18", border: "1px solid #252d45",
+            borderRadius: "10px", padding: "12px",
+          }}>
+            <p style={{ fontSize: "13px", fontWeight: 700, color: "#e2e8f0",
+                        marginBottom: "6px", lineHeight: 1.3 }}>
+              🎬 {m.title}
+            </p>
+            <p style={{ fontSize: "12px", color: "#8896b3", lineHeight: 1.5 }}>
+              {m.reason}
+            </p>
           </div>
         ))}
       </div>

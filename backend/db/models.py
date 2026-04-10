@@ -46,26 +46,49 @@ class AnalysisResult(BaseModel):
 
 class AlignmentDocument(BaseModel):
     """
-    Shape of a document stored in MongoDB collection `alignments`.
-    {
-      "_id": ObjectId,
-      "searched_at": ISODate,
-      "movie": { title, overview, release_date, language, poster_url },
-      "region": { region, state, lat, lon },
-      "result": { score, label, reason, content_flags, audience_note, similar_movies }
-    }
+    MongoDB document in `alignments` collection.
+    target_region = the country the user CHOSE to score for (may differ from production country).
     """
-    searched_at: datetime = Field(default_factory=datetime.utcnow)
-    movie:       MovieInfo
-    region:      RegionInfo
-    result:      AnalysisResult
+    searched_at:   datetime = Field(default_factory=datetime.utcnow)
+    movie:         MovieInfo
+    origin_region: RegionInfo           # production country (auto-detected)
+    target_region: str                  # user-chosen country for scoring
+    result:        AnalysisResult
 
 
-# ---- API request/response ----
+# ---- API Requests ----
 
 class AnalyzeRequest(BaseModel):
+    movie_name:    str
+    target_region: str = "India"        # which country the user wants to score for
+
+
+class MultiAnalyzeRequest(BaseModel):
+    """For pie chart — score one movie against multiple countries at once."""
     movie_name: str
+    regions:    List[str]               # e.g. ["India", "France", "Japan", "United States"]
 
 
-class AnalyzeResponse(AlignmentDocument):
-    id: str  # Stringified MongoDB ObjectId
+# ---- API Responses ----
+
+class AnalyzeResponse(BaseModel):
+    id:            str
+    searched_at:   str
+    movie:         MovieInfo
+    origin_region: RegionInfo
+    target_region: str
+    result:        AnalysisResult
+    cached:        bool = False         # True if result came from MongoDB cache
+
+
+class RegionScore(BaseModel):
+    """Single entry in a multi-country comparison."""
+    region:  str
+    score:   Optional[int]
+    label:   str
+    cached:  bool = False
+
+
+class MultiAnalyzeResponse(BaseModel):
+    movie:   MovieInfo
+    scores:  List[RegionScore]        

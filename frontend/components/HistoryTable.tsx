@@ -1,6 +1,6 @@
 "use client";
 import { AlignmentDocument } from "@/types";
-import { deleteAnalysis } from "../lib/api";
+import { deleteAnalysis } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

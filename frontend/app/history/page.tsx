@@ -1,5 +1,6 @@
-import { getHistory }    from "@/lib/api";
+
 import HistoryTable      from "@/components/HistoryTable";
+import { getHistory } from "../../lib/api";
 
 export const dynamic = "force-dynamic";
 

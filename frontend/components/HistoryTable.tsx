@@ -1,8 +1,8 @@
 "use client";
 import { AlignmentDocument } from "@/types";
-import { deleteAnalysis }     from "@/lib/api";
-import { useRouter }          from "next/navigation";
-import { useState }           from "react";
+import { deleteAnalysis } from "../lib/api";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 function scoreColor(score: number | null) {
   if (score === null) return "#8896b3";

@@ -53,6 +53,13 @@ export interface ComparisonEntry {
   cached:  boolean;
 }
 
+export interface RegionScore {
+  region:  string;
+  score:   number | null;
+  label:   string;
+  cached:  boolean;
+}
+
 export interface CompareResponse {
   movie:   MovieInfo;
   entries: ComparisonEntry[];

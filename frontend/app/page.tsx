@@ -1,6 +1,6 @@
 "use client";
 import { useState }                        from "react";
-import { analyzeMovie, compareMovieAcrossRegions } from "@/lib/api";
+import { analyzeMovie, compareMovieAcrossRegions } from "../lib/api";
 import { AlignmentDocument, CompareResponse } from "@/types";
 import CountrySelector, { COUNTRIES }      from "@/components/CountrySelector";
 import ComparisonCards                     from "@/components/ComparisonCards";

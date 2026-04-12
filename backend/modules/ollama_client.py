@@ -1,11 +1,21 @@
 import re
 import json
 import httpx
+import os
 from config import settings
 
+# Optional Groq
+try:
+    from groq import Groq
+    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+except Exception:
+    groq_client = None
 
+
+# ─────────────────────────────────────────────
+# 1. Detect Ollama model (LOCAL)
+# ─────────────────────────────────────────────
 async def get_ollama_model() -> str | None:
-    """Auto-detect whichever Ollama model is available, preferring llama3."""
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             r = await client.get(f"{settings.OLLAMA_BASE_URL}/api/tags")
@@ -25,15 +35,14 @@ async def get_ollama_model() -> str | None:
     return None
 
 
-async def ollama_generate(prompt: str, timeout: int = 300) -> str | None:
-    """
-    Send a prompt to Ollama /api/generate.
-    Returns the response string, or None on failure/timeout.
-    timeout=300 (5 min) because CPU inference is slow.
-    """
+# ─────────────────────────────────────────────
+# 2. Ollama (LOCAL)
+# ─────────────────────────────────────────────
+async def ollama_local_generate(prompt: str, timeout: int = 120) -> str | None:
     model = await get_ollama_model()
     if not model:
         return None
+
     try:
         async with httpx.AsyncClient(timeout=timeout) as client:
             response = await client.post(
@@ -42,39 +51,75 @@ async def ollama_generate(prompt: str, timeout: int = 300) -> str | None:
             )
             response.raise_for_status()
             return response.json().get("response", "")
-    except httpx.TimeoutException:
-        return None
     except Exception:
         return None
 
 
+# ─────────────────────────────────────────────
+# 3. Groq (CLOUD fallback)
+# ─────────────────────────────────────────────
+def groq_generate(prompt: str) -> str | None:
+    if not groq_client:
+        return None
+    try:
+        response = groq_client.chat.completions.create(
+            model="llama3-70b-8192",
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return response.choices[0].message.content
+    except Exception:
+        return None
+
+
+# ─────────────────────────────────────────────
+# 4. MAIN FUNCTION (AUTO SWITCH)
+# ─────────────────────────────────────────────
+async def ollama_generate(prompt: str, timeout: int = 120) -> str | None:
+    """
+    Priority:
+    1. Try local Ollama
+    2. Fallback to Groq API
+    """
+
+    # Try local first
+    local_result = await ollama_local_generate(prompt, timeout)
+    if local_result:
+        print("✅ Using LOCAL Ollama")
+        return local_result
+
+    # Fallback to cloud
+    cloud_result = groq_generate(prompt)
+    if cloud_result:
+        print("🌐 Using GROQ (fallback)")
+        return cloud_result
+
+    return None
+
+
+# ─────────────────────────────────────────────
+# 5. JSON Extractor (unchanged)
+# ─────────────────────────────────────────────
 def extract_json_robust(text: str) -> dict:
-    """
-    Try 3 strategies to pull JSON from Ollama output.
-    1. Direct parse
-    2. Strip ```json ... ``` code fences
-    3. Find first { ... } block
-    """
     if not text:
         return {}
-    # Strategy 1: direct
+
     try:
         return json.loads(text.strip())
     except Exception:
         pass
-    # Strategy 2: fenced code block
+
     fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text, re.DOTALL)
     if fenced:
         try:
             return json.loads(fenced.group(1))
         except Exception:
             pass
-    # Strategy 3: bare braces
+
     brace = re.search(r"\{.*\}", text, re.DOTALL)
     if brace:
         try:
             return json.loads(brace.group())
         except Exception:
             pass
-    return {}
 
+    return {}

@@ -1,0 +1,48 @@
+import { AlignmentDocument, CompareResponse } from "@/types";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+// ── Single analyze — accepts title, TMDB link, or IMDB link ──────
+export async function analyzeMovie(
+  movieInput:   string,
+  targetRegion: string
+): Promise<AlignmentDocument> {
+  const res = await fetch(`${BASE}/api/analyze`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ movie_input: movieInput, target_region: targetRegion }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Analysis failed");
+  }
+  return res.json();
+}
+
+// ── Multi-country comparison ─────────────────────────────────────
+export async function compareMovieAcrossRegions(
+  movieInput: string,
+  regions:    string[]
+): Promise<CompareResponse> {
+  const res = await fetch(`${BASE}/api/analyze/compare`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ movie_input: movieInput, regions }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Comparison failed");
+  }
+  return res.json();
+}
+
+// ── History ──────────────────────────────────────────────────────
+export async function getHistory(): Promise<AlignmentDocument[]> {
+  const res = await fetch(`${BASE}/api/history`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch history");
+  return res.json();
+}
+
+export async function deleteAnalysis(id: string): Promise<void> {
+  await fetch(`${BASE}/api/history/${id}`, { method: "DELETE" });
+}

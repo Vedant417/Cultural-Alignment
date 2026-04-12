@@ -4,40 +4,32 @@ from bson import ObjectId
 
 from db.connection import get_db
 from db.models import (
-    AnalyzeRequest, MultiAnalyzeRequest,
-    AlignmentDocument, AnalyzeResponse,
+    AnalyzeRequest, CompareRequest, CompareResponse,
+    AlignmentDocument, ComparisonEntry,
     MovieInfo, RegionInfo, AnalysisResult,
     ContentFlags, SimilarMovie,
-    RegionScore, MultiAnalyzeResponse,
 )
 from modules.tmdb   import fetch_movie
 from modules.region import detect_region
-from modules.scorer import get_cultural_score
+from modules.scorer import get_cultural_score, get_multi_cultural_scores
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 
 
-# ─────────────────────────────────────────────────────────────────
-# HELPER: check MongoDB cache for (movie_title, target_region)
-# ─────────────────────────────────────────────────────────────────
+# ── Cache lookup ──────────────────────────────────────────────────
 async def _get_cached(title: str, target_region: str) -> dict | None:
-    """
-    Look up MongoDB for an existing analysis of (movie title, target_region).
-    Title match is case-insensitive.
-    Returns the raw MongoDB document or None.
-    """
     db  = get_db()
     doc = await db.alignments.find_one({
-        "movie.title":  {"$regex": f"^{title}$", "$options": "i"},
+        "movie.title":   {"$regex": f"^{title}$", "$options": "i"},
         "target_region": target_region,
     })
     return doc
 
 
-# ─────────────────────────────────────────────────────────────────
-# HELPER: build a clean AlignmentDocument from score_data + other info
-# ─────────────────────────────────────────────────────────────────
-def _build_doc(movie_data: dict, origin: dict, target_region: str, score_data: dict) -> AlignmentDocument:
+# ── Build AlignmentDocument ───────────────────────────────────────
+def _build_doc(
+    movie_data: dict, origin: dict, target_region: str, score_data: dict
+) -> AlignmentDocument:
     flags_raw   = score_data.get("content_flags", {})
     similar_raw = score_data.get("similar_movies", [])
 
@@ -54,8 +46,8 @@ def _build_doc(movie_data: dict, origin: dict, target_region: str, score_data: d
         origin_region=RegionInfo(
             region=origin.get("region", "Unknown"),
             state=origin.get("state",  ""),
-            lat=float(origin.get("lat", 0.0)),
-            lon=float(origin.get("lon", 0.0)),
+            lat=float(origin.get("lat",  0.0)),
+            lon=float(origin.get("lon",  0.0)),
         ),
         target_region=target_region,
         result=AnalysisResult(
@@ -75,59 +67,49 @@ def _build_doc(movie_data: dict, origin: dict, target_region: str, score_data: d
 # ─────────────────────────────────────────────────────────────────
 # POST /api/analyze — single movie + single target region
 # ─────────────────────────────────────────────────────────────────
-@router.post("/analyze", response_model=AnalyzeResponse)
+@router.post("/analyze")
 async def analyze(request: AnalyzeRequest):
     """
-    Pipeline:
-      1. Fetch movie from TMDB
-      2. Check MongoDB cache (movie + target_region) → return instantly if found
-      3. Detect origin/production region via Ollama
-      4. Score cultural fit for target_region via Ollama
-      5. Save to MongoDB
-      6. Return result
+    Accepts movie_input as: plain title, TMDB URL, or IMDB URL.
+    Scores the movie for target_region.
+    Checks MongoDB cache first — skips Ollama if already computed.
     """
 
-    # Step 1: TMDB
-    movie_data = await fetch_movie(request.movie_name)
+    # Step 1: Fetch movie (handles title/TMDB link/IMDB link)
+    movie_data = await fetch_movie(request.movie_input)
     if not movie_data:
         raise HTTPException(
             status_code=404,
-            detail=f"Movie '{request.movie_name}' not found on TMDB."
+            detail=f"Movie not found: '{request.movie_input}'. "
+                   f"Try a different title, or paste a TMDB/IMDB link."
         )
 
-    # Step 2: Cache check — avoids calling Ollama if already analyzed
+    # Step 2: Cache check
     cached_doc = await _get_cached(movie_data["title"], request.target_region)
     if cached_doc:
         cached_doc["id"] = str(cached_doc.pop("_id"))
-        # Convert datetime to string for response
         if isinstance(cached_doc.get("searched_at"), datetime):
             cached_doc["searched_at"] = cached_doc["searched_at"].isoformat()
         return {**cached_doc, "cached": True}
 
-    # Step 3: Detect production country
+    # Step 3: Detect origin
     origin = await detect_region(movie_data)
 
     # Step 4: Score for target region
-    score_data = await get_cultural_score(
-        movie_data,
-        target_region=request.target_region,
-        state=""
-    )
+    score_data = await get_cultural_score(movie_data, target_region=request.target_region)
     if not score_data:
         raise HTTPException(
             status_code=500,
-            detail="Cultural scoring failed or timed out. Is Ollama running? Try `ollama serve`."
+            detail="Scoring failed or timed out. Is Ollama running? Run: ollama serve"
         )
 
-    # Step 5: Save to MongoDB
+    # Step 5: Save + return
     doc    = _build_doc(movie_data, origin, request.target_region, score_data)
     db     = get_db()
     result = await db.alignments.insert_one(doc.model_dump())
-    doc_id = str(result.inserted_id)
 
-    # Step 6: Return
     return {
-        "id":            doc_id,
+        "id":            str(result.inserted_id),
         "searched_at":   doc.searched_at.isoformat(),
         "movie":         doc.movie.model_dump(),
         "origin_region": doc.origin_region.model_dump(),
@@ -138,68 +120,91 @@ async def analyze(request: AnalyzeRequest):
 
 
 # ─────────────────────────────────────────────────────────────────
-# POST /api/analyze/multi — one movie vs many countries (pie chart)
+# POST /api/analyze/compare — multi-country comparison
+# Single Ollama call for ALL countries (much faster than N calls)
+# target_region is excluded from the comparison automatically
 # ─────────────────────────────────────────────────────────────────
-@router.post("/analyze/multi", response_model=MultiAnalyzeResponse)
-async def analyze_multi(request: MultiAnalyzeRequest):
+@router.post("/analyze/compare", response_model=CompareResponse)
+async def compare(request: CompareRequest):
     """
-    Score a movie against multiple countries in one request.
-    Each country is cache-checked individually — only calls Ollama
-    for countries not yet in MongoDB.
+    Compare a movie across multiple countries.
 
-    Used by the frontend pie chart.
+    KEY IMPROVEMENTS over old /multi endpoint:
+    1. Uses ONE Ollama call for all countries (not N separate calls)
+    2. Each result includes a reasoning sentence
+    3. Already-cached combos are pulled from MongoDB (skipped in Ollama call)
+    4. Sorted by score descending in response
     """
 
-    # Step 1: TMDB
-    movie_data = await fetch_movie(request.movie_name)
+    # Fetch movie
+    movie_data = await fetch_movie(request.movie_input)
     if not movie_data:
         raise HTTPException(
             status_code=404,
-            detail=f"Movie '{request.movie_name}' not found on TMDB."
+            detail=f"Movie not found: '{request.movie_input}'."
         )
 
-    # Deduplicate requested regions
-    regions = list(dict.fromkeys(request.regions))  # preserve order, remove duplicates
-    origin  = None
-    scores  = []
+    title   = movie_data["title"]
+    regions = list(dict.fromkeys(request.regions))  # deduplicate, preserve order
+
+    # ── Separate cached vs uncached regions ──
+    cached_entries:   list[ComparisonEntry] = []
+    uncached_regions: list[str]             = []
 
     for region in regions:
-
-        # Cache check first
-        cached_doc = await _get_cached(movie_data["title"], region)
-        if cached_doc:
-            r = cached_doc.get("result", {})
-            scores.append(RegionScore(
+        doc = await _get_cached(title, region)
+        if doc:
+            r = doc.get("result", {})
+            cached_entries.append(ComparisonEntry(
                 region=region,
                 score=r.get("score"),
                 label=r.get("label", ""),
+                reason=r.get("reason", "")[:120],   # truncate long reasons for comparison view
                 cached=True,
             ))
-            continue
+        else:
+            uncached_regions.append(region)
 
-        # Detect origin only once (shared across all regions)
-        if origin is None:
-            origin = await detect_region(movie_data)
+    # ── Single Ollama call for all uncached regions ──
+    fresh_entries: list[ComparisonEntry] = []
+    if uncached_regions:
+        raw_scores = await get_multi_cultural_scores(movie_data, uncached_regions)
 
-        # Score for this region
-        score_data = await get_cultural_score(movie_data, target_region=region)
-        if not score_data:
-            scores.append(RegionScore(region=region, score=None, label="Failed", cached=False))
-            continue
+        # Detect origin once (for saving to DB)
+        origin = await detect_region(movie_data)
 
-        # Save to MongoDB
-        doc    = _build_doc(movie_data, origin, region, score_data)
-        db     = get_db()
-        await db.alignments.insert_one(doc.model_dump())
+        for entry in raw_scores:
+            region = entry.get("region", "")
+            if not region:
+                continue
 
-        scores.append(RegionScore(
-            region=region,
-            score=score_data.get("score"),
-            label=score_data.get("label", ""),
-            cached=False,
-        ))
+            score_data_for_db = {
+                "score":          entry.get("score"),
+                "label":          entry.get("label", ""),
+                "reason":         entry.get("reason", ""),
+                "content_flags":  {},
+                "audience_note":  "",
+                "similar_movies": [],
+            }
 
-    return MultiAnalyzeResponse(
+            # Save to MongoDB for future cache hits
+            doc_to_save = _build_doc(movie_data, origin, region, score_data_for_db)
+            db = get_db()
+            await db.alignments.insert_one(doc_to_save.model_dump())
+
+            fresh_entries.append(ComparisonEntry(
+                region=region,
+                score=entry.get("score"),
+                label=entry.get("label", ""),
+                reason=entry.get("reason", ""),
+                cached=False,
+            ))
+
+    # ── Combine and sort ──
+    all_entries = cached_entries + fresh_entries
+    all_entries.sort(key=lambda e: (e.score or 0), reverse=True)
+
+    return CompareResponse(
         movie=MovieInfo(**movie_data),
-        scores=scores,
+        entries=all_entries,
     )

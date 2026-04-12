@@ -44,21 +44,22 @@ export interface AlignmentDocument {
   cached?:       boolean;
 }
 
-export interface RegionScore {
+// ── New comparison types ──
+export interface ComparisonEntry {
   region:  string;
   score:   number | null;
   label:   string;
+  reason:  string;
   cached:  boolean;
 }
 
-export interface MultiAnalyzeResponse {
-  movie:  MovieInfo;
-  scores: RegionScore[];
+export interface CompareResponse {
+  movie:   MovieInfo;
+  entries: ComparisonEntry[];
 }
 
-// Country option for the selector
 export interface CountryOption {
   name:  string;
   flag:  string;
-  group: string;   // "South Asia" | "East Asia" | "Europe" | "Americas" | "Middle East" | "Oceania"
+  group: string;
 }

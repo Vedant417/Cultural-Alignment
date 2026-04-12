@@ -4,8 +4,6 @@ from typing import Optional, List
 from datetime import datetime
 
 
-# ---- Sub-models ----
-
 class MovieInfo(BaseModel):
     title:        str
     overview:     str
@@ -42,47 +40,47 @@ class AnalysisResult(BaseModel):
     similar_movies: List[SimilarMovie] = []
 
 
-# ---- Top-level MongoDB document ----
-
 class AlignmentDocument(BaseModel):
-    """
-    MongoDB document in `alignments` collection.
-    target_region = the country the user CHOSE to score for (may differ from production country).
-    """
     searched_at:   datetime = Field(default_factory=datetime.utcnow)
-    movie:         MovieInfo
-    origin_region: RegionInfo           # production country (auto-detected)
-    target_region: str                  # user-chosen country for scoring
-    result:        AnalysisResult
-
-
-# ---- API Requests ----
-
-class AnalyzeRequest(BaseModel):
-    movie_name:    str
-    target_region: str = "India"        # which country the user wants to score for
-
-
-class MultiAnalyzeRequest(BaseModel):
-    """For pie chart — score one movie against multiple countries at once."""
-    movie_name: str
-    regions:    List[str]               # e.g. ["India", "France", "Japan", "United States"]
-
-
-# ---- API Responses ----
-
-class AnalyzeResponse(BaseModel):
-    id:            str
-    searched_at:   str
     movie:         MovieInfo
     origin_region: RegionInfo
     target_region: str
     result:        AnalysisResult
-    cached:        bool = False         # True if result came from MongoDB cache
+
+
+# ── New: comparison entry (used by /analyze/compare) ──
+class ComparisonEntry(BaseModel):
+    """One country's score in a multi-country comparison."""
+    region:  str
+    score:   Optional[int]
+    label:   str
+    reason:  str                   # AI reasoning sentence for this country
+    cached:  bool = False
+
+
+class CompareRequest(BaseModel):
+    movie_input:   str             # title, TMDB link, or IMDB link
+    regions:       List[str]       # countries to compare (target country excluded)
+
+
+class CompareResponse(BaseModel):
+    movie:   MovieInfo
+    entries: List[ComparisonEntry]  # sorted by score descending
+
+
+# ── Single analyze ──
+class AnalyzeRequest(BaseModel):
+    movie_input:   str             # title, TMDB link, or IMDB link
+    target_region: str = "India"
+
+
+# ── Multi (old — kept for backward compat) ──
+class MultiAnalyzeRequest(BaseModel):
+    movie_name: str
+    regions:    List[str]
 
 
 class RegionScore(BaseModel):
-    """Single entry in a multi-country comparison."""
     region:  str
     score:   Optional[int]
     label:   str
@@ -91,4 +89,4 @@ class RegionScore(BaseModel):
 
 class MultiAnalyzeResponse(BaseModel):
     movie:   MovieInfo
-    scores:  List[RegionScore]        
+    scores:  List[RegionScore]

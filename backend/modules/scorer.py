@@ -7,11 +7,16 @@ async def get_cultural_score(
     target_region: str,
     state: str = ""
 ) -> dict:
+    """
+    Score a movie's cultural fit for ONE target region.
+    Returns: { score, label, reason, content_flags, audience_note, similar_movies }
+    """
     title    = movie_data["title"]
     lang     = movie_data.get("language", "en")
     overview = movie_data["overview"][:220].rsplit(" ", 1)[0]
     loc      = f"{state}, {target_region}" if state else target_region
 
+    # Scoring reference table embedded concisely
     scoring_guide = (
         "Scoring guide: "
         "10=perfect native fit, "
@@ -44,43 +49,34 @@ async def get_cultural_score(
         f']}}'
     )
 
-    # ⏱ Reduced timeout for faster response
-    raw = await ollama_generate(prompt, timeout=120)
-
-    # 🛑 Fallback if AI fails
+    raw = await ollama_generate(prompt, timeout=300)
     if not raw:
-        return {
-            "score": 5,
-            "label": "Moderate Fit",
-            "reason": f"AI service unavailable. Default fallback for {target_region}.",
-            "content_flags": {
-                "violence": "Unknown",
-                "adult_content": "Unknown",
-                "religion_sensitivity": "Unknown",
-                "drug_glorification": "Unknown"
-            },
-            "audience_note": "Fallback result due to AI issue.",
-            "similar_movies": []
-        }
+        return {}
 
     parsed = extract_json_robust(raw)
 
-    # 🧠 Ensure valid score
     if "score" in parsed:
         try:
             parsed["score"] = max(1, min(10, int(parsed["score"])))
         except (ValueError, TypeError):
-            parsed["score"] = 5
+            parsed["score"] = None
 
     return parsed
 
 
-# ─── Multi-country score ─────────────────────────────────────────
+# ─── Multi-country score — ONE Ollama call for ALL countries ──────
 async def get_multi_cultural_scores(
     movie_data: dict,
     regions: list[str]
 ) -> list[dict]:
+    """
+    Score a movie for MULTIPLE countries in a SINGLE Ollama prompt.
+    This is much faster than calling get_cultural_score() N times.
 
+    Each region gets: score (1-10), label, reason (1 sentence explaining the score).
+
+    Returns: list of { region, score, label, reason }
+    """
     title    = movie_data["title"]
     lang     = movie_data.get("language", "en")
     overview = movie_data["overview"][:200].rsplit(" ", 1)[0]
@@ -106,23 +102,14 @@ async def get_multi_cultural_scores(
         f']}}'
     )
 
-    raw = await ollama_generate(prompt, timeout=150)
-
-    # 🛑 Fallback if AI fails
+    raw = await ollama_generate(prompt, timeout=360)  # slightly longer for multi
     if not raw:
-        return [
-            {
-                "region": r,
-                "score": 5,
-                "label": "Moderate Fit",
-                "reason": "Fallback result (AI unavailable)"
-            }
-            for r in regions
-        ]
+        return []
 
     parsed = extract_json_robust(raw)
     scores = parsed.get("scores", [])
 
+    # Validate and sanitize each entry
     result = []
     for entry in scores:
         if not isinstance(entry, dict):
@@ -130,7 +117,7 @@ async def get_multi_cultural_scores(
         try:
             score = max(1, min(10, int(entry.get("score", 5))))
         except (ValueError, TypeError):
-            score = 5
+            score = None
 
         result.append({
             "region": entry.get("region", ""),

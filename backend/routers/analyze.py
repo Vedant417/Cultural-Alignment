@@ -170,8 +170,8 @@ async def compare(request: CompareRequest):
     if uncached_regions:
         raw_scores = await get_multi_cultural_scores(movie_data, uncached_regions)
 
-        # Detect origin once (for saving to DB)
-        origin = await detect_region(movie_data)
+        # Skip region detection for comparison — only score matters here
+        origin = {"region": "Unknown", "state": "", "lat": 0.0, "lon": 0.0}
 
         for entry in raw_scores:
             region = entry.get("region", "")

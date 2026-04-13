@@ -55,3 +55,47 @@ html, body {
   color: var(--text-primary);
   background-color: var(--bg-card-2);
 }
+html {
+  font-size: 16px;
+}
+
+/* Input fields */
+input, select, textarea, button {
+  font-size: 15px !important;
+}
+
+/* Card body text */
+.card-text, p {
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+/* Small labels (uppercase headers inside cards) */
+.label-xs {
+  font-size: 12px !important;
+}
+
+/* Score badge number */
+.score-number {
+  font-size: 20px !important;
+}
+
+/* Movie title in card */
+.movie-title {
+  font-size: 22px !important;
+}
+
+/* Section headings */
+h2 {
+  font-size: 18px !important;
+}
+
+/* Page main heading */
+h1 {
+  font-size: 34px !important;
+}
+
+/* Table cells */
+td, th {
+  font-size: 14px;
+}

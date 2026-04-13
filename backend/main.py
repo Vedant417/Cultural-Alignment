@@ -2,17 +2,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routers import analyze, history
 from db.connection import connect_db, close_db
+from modules.ollama_client import get_ollama_model   # unchanged import
 
 app = FastAPI(
     title="CultureAlign API",
     description="AI-powered cultural alignment analysis for movies.",
-    version="1.0.0"
+    version="4.0.0"
 )
 
-# Allow Next.js dev server to call the API
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # allow Netlify domain + localhost
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -29,7 +29,31 @@ async def shutdown():
 app.include_router(analyze.router)
 app.include_router(history.router)
 
+
 @app.get("/health")
 async def health():
-    """Quick health check — verify API is up."""
-    return {"status": "ok", "service": "CultureAlign API"}
+    """
+    Health check — shows which LLM provider is active.
+    Useful for debugging hosted vs local environments.
+    """
+    provider_info = await get_ollama_model()
+
+    if provider_info and provider_info.startswith("groq:"):
+        provider = "groq"
+        model    = provider_info.replace("groq:", "")
+    elif provider_info and provider_info.startswith("ollama:"):
+        provider = "ollama"
+        model    = provider_info.replace("ollama:", "")
+    else:
+        provider = "none"
+        model    = None
+
+    return {
+        "status":   "ok",
+        "service":  "CultureAlign API",
+        "llm": {
+            "provider": provider,        # "ollama" | "groq" | "none"
+            "model":    model,           # model name being used
+            "ready":    provider != "none",
+        }
+    }

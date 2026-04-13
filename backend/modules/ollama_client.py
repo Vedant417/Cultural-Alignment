@@ -59,15 +59,30 @@ async def ollama_local_generate(prompt: str, timeout: int = 120) -> str | None:
 # 3. Groq (CLOUD fallback)
 # ─────────────────────────────────────────────
 def groq_generate(prompt: str) -> str | None:
-    if not groq_client:
-        return None
     try:
-        response = groq_client.chat.completions.create(
+        from groq import Groq
+        import os
+
+        api_key = os.getenv("GROQ_API_KEY")
+        print("GROQ KEY:", api_key)
+
+        if not api_key:
+            print("❌ No API key found")
+            return None
+
+        client = Groq(api_key=api_key)
+
+        response = client.chat.completions.create(
             model="llama3-70b-8192",
             messages=[{"role": "user", "content": prompt}],
         )
+
+        print("✅ Groq response received")
+
         return response.choices[0].message.content
-    except Exception:
+
+    except Exception as e:
+        print("❌ GROQ ERROR:", str(e))
         return None
 
 

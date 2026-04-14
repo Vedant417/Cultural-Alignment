@@ -63,3 +63,21 @@ export interface CountryOption {
   flag:  string;
   group: string;
 }
+export interface HistoryEntry {
+  id:            string;
+  target_region: string;
+  score:         number | null;
+  label:         string;
+  reason:        string;
+  searched_at:   string;
+}
+
+// One grouped movie (all countries for that movie)
+export interface GroupedHistory {
+  title:        string;
+  poster_url:   string;
+  language:     string;
+  release_date: string;
+  latest_date:  string;
+  entries:      HistoryEntry[];
+}

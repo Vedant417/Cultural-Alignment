@@ -1,4 +1,5 @@
-import { AlignmentDocument, CompareResponse } from "@/types";
+import { AlignmentDocument, CompareResponse, GroupedHistory } from "@/types";
+
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -45,4 +46,25 @@ export async function getHistory(): Promise<AlignmentDocument[]> {
 
 export async function deleteAnalysis(id: string): Promise<void> {
   await fetch(`${BASE}/api/history/${id}`, { method: "DELETE" });
+}
+
+
+
+
+// Grouped history — one entry per movie
+export async function getGroupedHistory(): Promise<GroupedHistory[]> {
+  const res = await fetch(`${BASE}/api/history/grouped/all`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Failed to fetch grouped history");
+  return res.json();
+}
+
+// Fetch a specific cached analysis for pre-loading on analyze page
+export async function getCachedAnalysis(
+  title: string,
+  region: string
+): Promise<AlignmentDocument> {
+  const params = new URLSearchParams({ title, region });
+  const res = await fetch(`${BASE}/api/history/cached?${params}`, { cache: "no-store" });
+  if (!res.ok) throw new Error("Cached analysis not found");
+  return res.json();
 }

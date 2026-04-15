@@ -208,3 +208,38 @@ async def compare(request: CompareRequest):
         movie=MovieInfo(**movie_data),
         entries=all_entries,
     )
+class ExplainRequest(BaseModel):
+    title:   str
+    region:  str
+    summary: str   # the existing short reason
+
+@router.post("/analyze/explain")
+async def explain_deeper(body: ExplainRequest):
+    """
+    Takes the existing short reason and expands it with deep cultural analysis.
+    """
+    prompt = f"""
+You are a senior cultural analyst. A film "{body.title}" received this
+short cultural fit summary for {body.region}:
+
+"{body.summary}"
+
+Expand this into a detailed breakdown covering ALL of these factors:
+1. Language & Dialogue — is the language, humor, and dialogue style natural for this region?
+2. Religion & Values — do the themes align with or conflict with dominant beliefs?
+3. Censorship Risk — are there scenes/topics likely to face censorship or controversy?
+4. Audience Taste — does the pacing, genre, and storytelling match audience preferences?
+5. Historical/Political Context — any sensitivities from the region's history?
+
+Be specific, informative, 4-6 sentences per factor.
+Return ONLY valid JSON:
+{{
+  "language": "...",
+  "religion": "...",
+  "censorship": "...",
+  "audience":  "...",
+  "context":   "..."
+}}
+"""
+    raw = await call_llm(prompt)
+    return parse_json_response(raw)

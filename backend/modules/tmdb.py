@@ -5,41 +5,50 @@ from config import settings
 
 def parse_input(raw_input: str) -> dict:
     """
-    Detect input type: plain title, TMDB URL, or IMDB URL.
-    Handles http and https, www and m subdomains, query params.
-
-    Returns: { "type": "title"|"tmdb_id"|"imdb_id", "value": str }
+    Detects input type from raw user input.
+    Handles:
+      - Leading/trailing whitespace (strip before anything)
+      - http / https / no protocol
+      - www. / m. subdomains
+      - Trailing slash after movie ID  (imdb.com/title/tt1375666/)
+      - Query params after ID          (?ref_=nv_sr_srsg_0)
+      - Bare IMDB ID                   tt1375666
+      - Plain title                    Inception
     """
+    # ── Strip ALL whitespace first — fixes "paste + space" issue ──
     raw = raw_input.strip()
 
-    # ── TMDB link ────────────────────────────────────────────────
-    # Matches all of:
-    #   https://www.themoviedb.org/movie/27205
-    #   https://www.themoviedb.org/movie/27205-inception
-    #   http://themoviedb.org/movie/27205?language=en
+    if not raw:
+        return {"type": "title", "value": ""}
+
+    # ── TMDB link ─────────────────────────────────────────────────
+    # themoviedb.org/movie/27205
+    # themoviedb.org/movie/27205-inception
+    # themoviedb.org/movie/27205/          ← trailing slash OK now
+    # https://www.themoviedb.org/movie/27205?language=en
     tmdb_match = re.search(
-        r"(?:https?://)?(?:www\.)?themoviedb\.org/movie/(\d+)",
+        r"(?:https?://)?(?:www\.)?themoviedb\.org/movie/(\d+)(?:[-\w]*)?/?",
         raw, re.IGNORECASE
     )
     if tmdb_match:
         return {"type": "tmdb_id", "value": tmdb_match.group(1)}
 
-    # ── IMDB link ────────────────────────────────────────────────
-    # Matches all of:
-    #   https://www.imdb.com/title/tt1375666/
-    #   https://m.imdb.com/title/tt1375666/
-    #   http://imdb.com/title/tt1375666?ref_=nv_sr_srsg_0
-    #   https://www.imdb.com/title/tt1375666/?ref_=...
+    # ── IMDB link ─────────────────────────────────────────────────
+    # https://www.imdb.com/title/tt1375666/
+    # https://m.imdb.com/title/tt1375666/
+    # http://imdb.com/title/tt1375666/?ref_=nv_sr_srsg_0
+    # imdb.com/title/tt1375666            ← no protocol OK
+    # imdb.com/title/tt1375666/           ← trailing slash OK now
     imdb_match = re.search(
-        r"(?:https?://)?(?:www\.|m\.)?imdb\.com/title/(tt\d+)",
+        r"(?:https?://)?(?:www\.|m\.)?imdb\.com/title/(tt\d+)/?",
         raw, re.IGNORECASE
     )
     if imdb_match:
         return {"type": "imdb_id", "value": imdb_match.group(1)}
 
-    # ── Bare IMDB ID ─────────────────────────────────────────────
-    # e.g. "tt1375666"
-    bare_imdb = re.match(r"^(tt\d+)$", raw.strip())
+    # ── Bare IMDB ID ──────────────────────────────────────────────
+    # tt1375666  or  tt1375666/
+    bare_imdb = re.match(r"^(tt\d+)/?$", raw.strip())
     if bare_imdb:
         return {"type": "imdb_id", "value": bare_imdb.group(1)}
 
@@ -60,10 +69,9 @@ async def _build_movie_dict(movie: dict) -> dict:
 
 async def fetch_by_tmdb_id(tmdb_id: str) -> dict | None:
     url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
-    params = {"api_key": settings.TMDB_API_KEY}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, params=params)
+            resp = await client.get(url, params={"api_key": settings.TMDB_API_KEY})
             if resp.status_code == 200:
                 return await _build_movie_dict(resp.json())
     except Exception:
@@ -73,12 +81,13 @@ async def fetch_by_tmdb_id(tmdb_id: str) -> dict | None:
 
 async def fetch_by_imdb_id(imdb_id: str) -> dict | None:
     url = f"https://api.themoviedb.org/3/find/{imdb_id}"
-    params = {"api_key": settings.TMDB_API_KEY, "external_source": "imdb_id"}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, params=params)
-            data = resp.json()
-            results = data.get("movie_results", [])
+            resp = await client.get(url, params={
+                "api_key": settings.TMDB_API_KEY,
+                "external_source": "imdb_id",
+            })
+            results = resp.json().get("movie_results", [])
             if results:
                 return await _build_movie_dict(results[0])
     except Exception:
@@ -88,13 +97,15 @@ async def fetch_by_imdb_id(imdb_id: str) -> dict | None:
 
 async def fetch_by_title(title: str) -> dict | None:
     url = "https://api.themoviedb.org/3/search/movie"
-    params = {"api_key": settings.TMDB_API_KEY, "query": title}
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, params=params)
-            data = resp.json()
-            if data.get("results"):
-                return await _build_movie_dict(data["results"][0])
+            resp = await client.get(url, params={
+                "api_key": settings.TMDB_API_KEY,
+                "query": title,
+            })
+            results = resp.json().get("results", [])
+            if results:
+                return await _build_movie_dict(results[0])
     except Exception:
         return None
     return None
@@ -102,16 +113,18 @@ async def fetch_by_title(title: str) -> dict | None:
 
 async def fetch_movie(raw_input: str) -> dict | None:
     """
-    Main entry point. Accepts:
-    - Title:      "Inception"
-    - TMDB link:  "https://www.themoviedb.org/movie/27205-inception"
-    - IMDB link:  "https://www.imdb.com/title/tt1375666/"
-    - Mobile IMDB:"https://m.imdb.com/title/tt1375666/"
-    - Bare ID:    "tt1375666"
+    Main entry. Accepts title, TMDB link, IMDB link, bare IMDB ID.
+    Input is always stripped of whitespace before any parsing.
     """
     parsed = parse_input(raw_input)
+
+    if not parsed["value"]:
+        return None
+
     if parsed["type"] == "tmdb_id":
         return await fetch_by_tmdb_id(parsed["value"])
+
     if parsed["type"] == "imdb_id":
         return await fetch_by_imdb_id(parsed["value"])
+
     return await fetch_by_title(parsed["value"])

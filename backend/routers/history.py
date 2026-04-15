@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from db.connection import get_db
 from bson import ObjectId
+from datetime import datetime  # ✅ ADDED
 import re
 
 router = APIRouter(prefix="/api", tags=["history"])
@@ -20,9 +21,6 @@ def _serialize(doc: dict) -> dict:
 
 @router.get("/history/grouped/all")
 async def get_history_grouped():
-    """
-    Return all analyses grouped by movie title.
-    """
     db = get_db()
     docs = await db.alignments.find().sort("searched_at", -1).to_list(500)
 
@@ -66,12 +64,11 @@ async def get_history_grouped():
                 "searched_at": searched_at_str,
             })
 
-            # update latest date
             if searched_at_str > groups[key]["latest_date"]:
                 groups[key]["latest_date"] = searched_at_str
 
         except Exception:
-            continue  # skip bad docs safely
+            continue
 
     result_list = list(groups.values())
     result_list.sort(key=lambda x: x["latest_date"], reverse=True)
@@ -84,9 +81,6 @@ async def get_cached_analysis(
     title: str = Query(...),
     region: str = Query(...),
 ):
-    """
-    Fetch cached analysis by movie title + region
-    """
     db = get_db()
 
     doc = await db.alignments.find_one({
@@ -102,11 +96,50 @@ async def get_cached_analysis(
 
 @router.get("/history")
 async def get_history():
-    """
-    Flat list of all analyses
-    """
     db = get_db()
     docs = await db.alignments.find().sort("searched_at", -1).to_list(200)
+    return [_serialize(d) for d in docs]
+
+
+# =========================================================
+# ⭐ FAVORITES ROUTES (ADD BEFORE DYNAMIC ROUTES)
+# =========================================================
+
+@router.post("/favorites/{doc_id}")
+async def save_favorite(doc_id: str):
+    if not ObjectId.is_valid(doc_id):
+        raise HTTPException(400, "Invalid ID.")
+
+    db = get_db()
+    await db.alignments.update_one(
+        {"_id": ObjectId(doc_id)},
+        {"$set": {"favorited": True, "favorited_at": datetime.utcnow()}}
+    )
+
+    return {"favorited": True}
+
+
+@router.delete("/favorites/{doc_id}")
+async def remove_favorite(doc_id: str):
+    if not ObjectId.is_valid(doc_id):
+        raise HTTPException(400, "Invalid ID.")
+
+    db = get_db()
+    await db.alignments.update_one(
+        {"_id": ObjectId(doc_id)},
+        {"$unset": {"favorited": "", "favorited_at": ""}}
+    )
+
+    return {"favorited": False}
+
+
+@router.get("/favorites")
+async def get_favorites():
+    db = get_db()
+    docs = await db.alignments.find(
+        {"favorited": True}
+    ).sort("favorited_at", -1).to_list(200)
+
     return [_serialize(d) for d in docs]
 
 

@@ -52,9 +52,15 @@ export async function deleteAnalysis(id: string): Promise<void> {
 
 
 // Grouped history — one entry per movie
-export async function getGroupedHistory(): Promise<GroupedHistory[]> {
-  const res = await fetch(`${BASE}/api/history/grouped/all`, { cache: "no-store" });
-  if (!res.ok) throw new Error("Failed to fetch grouped history");
+export async function getGroupedHistory() {
+  const res = await fetch("http://localhost:8000/api/history/grouped/all", {
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    throw new Error("Failed to fetch history");
+  }
+
   return res.json();
 }
 

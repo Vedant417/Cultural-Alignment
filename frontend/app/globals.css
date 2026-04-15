@@ -264,3 +264,20 @@ button {
   cursor:  not-allowed;
   box-shadow: none;
 }
+.tooltip-box {
+  opacity: 0;
+}
+
+div:hover > .tooltip-box {
+  opacity: 1;
+  transform: translateY(0);
+}
+.tooltip-box {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tooltip-wrapper:hover .tooltip-box {
+  opacity: 1;
+  transform: translateY(0);
+}

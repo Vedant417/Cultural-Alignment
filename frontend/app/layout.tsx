@@ -122,7 +122,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </main>
 
         </ThemeProvider>
+<div
+  id="global-tooltip"
+  style={{
+    position: "fixed",
+    top: "0px",
+    left: "0px",
+    width: "260px",
+    background: "var(--bg-card)",
+    border: "1px solid var(--border)",
+    borderRadius: "10px",
+    padding: "10px",
+    fontSize: "12px",
+    color: "var(--text-2)",
+    boxShadow: "var(--shadow-card)",
+    pointerEvents: "none",
+    opacity: 0,
+    transition: "opacity 0.15s ease",
+    zIndex: 9999,
+  }}
+></div>
       </body>
+
     </html>
   );
 }

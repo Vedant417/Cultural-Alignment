@@ -3,51 +3,59 @@ import HistoryTable from "@/components/HistoryTable";
 
 export const dynamic = "force-dynamic";
 
+type HistoryEntry = {
+  id: string;
+  target_region: string;
+  score: number | null;
+  label: string;
+  reason: string;
+  searched_at: string;
+};
+
+type GroupedHistory = {
+  title: string;
+  poster_url: string;
+  language: string;
+  release_date: string;
+  latest_date: string;
+  entries: HistoryEntry[];
+};
+
 export default async function HistoryPage() {
-  let groupedData: Awaited<ReturnType<typeof getGroupedHistory>> = [];
+  let data: GroupedHistory[] = [];
 
   try {
-    groupedData = await getGroupedHistory();
-  } catch {
-    // backend offline
+    data = await getGroupedHistory();
+    console.log("History data:", data);
+  } catch (err) {
+    console.error("History fetch failed:", err);
   }
-
-
-  const flatData = Array.isArray(groupedData)
-    ? groupedData.flatMap((group: any) => {
-        // detect correct property dynamically
-        if (Array.isArray(group.items)) return group.items;
-        if (Array.isArray(group.data)) return group.data;
-        if (Array.isArray(group.history)) return group.history;
-        return [];
-      })
-    : [];
 
   return (
     <div>
-      <div style={{ marginBottom: "32px" }}>
-        <h1
-          style={{
-            fontFamily: "Sora, sans-serif",
-            fontWeight: 800,
-            fontSize: "30px",
-            color: "#f0f4ff",
-            marginBottom: "8px",
-            letterSpacing: "-0.02em",
-          }}
-        >
+      <div style={{ marginBottom: "24px" }}>
+        <h1 style={{ fontSize: "28px", fontWeight: 800 }}>
           📜 Analysis History
         </h1>
 
-        <p style={{ color: "#4b5a73", fontSize: "14px" }}>
-          {flatData.length} movie{flatData.length !== 1 ? "s" : ""} analyzed —
-          click any movie to load it on the Analyze page.
-          Hover over a country to see its reasoning.
+        <p style={{ color: "var(--text-2)" }}>
+          {data.length} movies analyzed
         </p>
       </div>
 
-      {/* ✅ Correct type passed */}
-      <HistoryTable data={flatData} />
+      {!data.length ? (
+        <div style={{
+          padding: "60px",
+          textAlign: "center",
+          border: "1px solid var(--border)",
+          borderRadius: "16px",
+          color: "var(--text-3)",
+        }}>
+          No analyses yet.
+        </div>
+      ) : (
+        <HistoryTable data={data} />
+      )}
     </div>
   );
 }

@@ -14,7 +14,7 @@ from db.models import (
 from modules.tmdb   import fetch_movie
 from modules.region import detect_region
 from modules.scorer import get_cultural_score, get_multi_cultural_scores
-from modules.llm    import call_llm, parse_json_response  # ✅ Added for /recommend
+from modules.ollama_client import ollama_generate, extract_json_robust
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 

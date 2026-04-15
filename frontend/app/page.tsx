@@ -214,14 +214,14 @@ function AnalyzeContent() {
             letterSpacing: "-0.03em",
             lineHeight: 1.1,
           }}>
-            {t("hero_title_part1")}
+            {t("Global Cultural Intelligence")}
             <span style={{
               background: "linear-gradient(135deg, #6366f1, #a78bfa)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
             }}>
-              {t("hero_title_part2")}
+              {t(" For Film Analysis")}
             </span>
           </h1>
 
@@ -232,7 +232,7 @@ function AnalyzeContent() {
             maxWidth: "540px",
             lineHeight: 1.7,
           }}>
-            {t("hero_description")}
+            {t("Transform how you understand movie reception across cultures. Our AI analyzes cultural nuances, content flags, and audience alignment for any film worldwide. Uncover insights, compare regions, and make informed entertainment choices with ease.")}
           </p>
 
           {/* ── Search box ── */}

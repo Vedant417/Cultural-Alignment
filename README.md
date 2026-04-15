@@ -154,7 +154,7 @@ cd backend
 Create the `.env` file:
 ```bash
 # backend/.env
-TMDB_API_KEY=a3d117500dc275ba72d9e9268a7c579d
+TMDB_API_KEY=YOUR_TMDB_API KEY FROM TMDB SETTINGS/API
 OLLAMA_BASE_URL=http://localhost:11434
 MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB=culture_align

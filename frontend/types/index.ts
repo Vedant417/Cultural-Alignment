@@ -44,15 +44,23 @@ export interface AlignmentDocument {
   cached?:       boolean;
 }
 
-// ── New comparison types ──
-export interface ComparisonEntry {
-  region:  string;
-  score:   number | null;
-  label:   string;
-  reason:  string;
-  cached:  boolean;
+export interface SubScores {
+  cultural_fit: number;
+  censorship_risk: number;
+  language_fit: number;
+  market_appeal: number;
 }
 
+export interface ComparisonEntry {
+  region: string;
+  score: number | null;
+  label: string;
+  reason?: string;
+  cached?: boolean;
+
+  // ✅ FIXED to match CulturalBreakdown
+  sub_scores?: SubScores;
+}
 export interface CompareResponse {
   movie:   MovieInfo;
   entries: ComparisonEntry[];

@@ -1,5 +1,7 @@
 "use client";
 import { ComparisonEntry } from "@/types";
+import ExplainMoreBtn from "@/components/ExplainMoreBtn";
+import CulturalBreakdown from "@/components/CulturalBreakdown";
 
 function scoreColor(score: number | null): string {
   if (score === null) return "var(--text-3)";
@@ -27,7 +29,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 };
 
 interface Props {
-  entries:    ComparisonEntry[];
+  entries: ComparisonEntry[];
   movieTitle: string;
 }
 
@@ -36,12 +38,10 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
 
   return (
     <div>
-      {/* Header */}
       <p className="ca-label" style={{ marginBottom: "16px" }}>
         🌍 Cultural Fit Comparison — {movieTitle}
       </p>
 
-      {/* Legend */}
       <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "18px" }}>
         {[
           { color: "var(--green)",  label: "8–10  Strong / Perfect" },
@@ -57,7 +57,6 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
         ))}
       </div>
 
-      {/* Cards */}
       <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
         {entries.map((entry, idx) => {
           const color   = scoreColor(entry.score);
@@ -76,7 +75,6 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                 position:     "relative",
               }}
             >
-              {/* Rank badge */}
               <span style={{
                 position:   "absolute",
                 top:        "14px",
@@ -88,7 +86,6 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                 #{idx + 1}
               </span>
 
-              {/* Top row */}
               <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "12px" }}>
                 <span style={{ fontSize: "24px", flexShrink: 0 }}>{flag}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -116,7 +113,7 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                     )}
                   </div>
                 </div>
-                {/* Score + label */}
+
                 <div style={{ display: "flex", alignItems: "center", gap: "8px", flexShrink: 0 }}>
                   <span style={{
                     fontSize:   "20px",
@@ -157,6 +154,11 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                 }} />
               </div>
 
+              {/* ✅ NEW: Cultural Breakdown */}
+              {entry.sub_scores && (
+                <CulturalBreakdown scores={entry.sub_scores} />
+              )}
+
               {/* AI reasoning */}
               {entry.reason && (
                 <p style={{
@@ -167,6 +169,11 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                   paddingLeft:"36px",
                 }}>
                   💬 {entry.reason}
+                  <ExplainMoreBtn
+                    title={movieTitle}
+                    region={entry.region}
+                    summary={entry.reason}
+                  />
                 </p>
               )}
             </div>

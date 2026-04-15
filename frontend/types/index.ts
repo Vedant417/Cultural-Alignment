@@ -89,3 +89,34 @@ export interface GroupedHistory {
   latest_date:  string;
   entries:      HistoryEntry[];
 }
+
+export interface SubScores {
+  cultural_fit:    number;
+  censorship_risk: number;
+  language_fit:    number;
+  market_appeal:   number;
+}
+
+
+
+export interface MovieVsMovieResult {
+  region:  string;
+  movie_a: { title: string; score: number; label: string; reason: string };
+  movie_b: { title: string; score: number; label: string; reason: string };
+}
+
+export interface Recommendation {
+  title:          string;
+  reason:         string;
+  expected_score: number;
+}
+
+export interface DeepAnalysis {
+  language:   string;
+  religion:   string;
+  censorship: string;
+  audience:   string;
+  context:    string;
+}
+
+export type Lang = "en" | "hi" | "es" | "ja";

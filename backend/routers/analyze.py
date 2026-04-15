@@ -1,4 +1,5 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from datetime import datetime
 from bson import ObjectId
 
@@ -13,6 +14,7 @@ from db.models import (
 from modules.tmdb   import fetch_movie
 from modules.region import detect_region
 from modules.scorer import get_cultural_score, get_multi_cultural_scores
+from modules.llm    import call_llm, parse_json_response  # ✅ Added for /recommend
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 
@@ -192,3 +194,57 @@ async def compare(request: CompareRequest):
         movie=MovieInfo(**movie_data),
         entries=all_entries,
     )
+
+
+# ─────────────────────────────────────────────────────────────────
+# ✅ NEW: POST /api/analyze/recommend
+# ─────────────────────────────────────────────────────────────────
+class RecommendRequest(BaseModel):
+    title:  str
+    region: str
+    score:  int
+    genre:  str = ""
+
+
+@router.post("/analyze/recommend")
+async def recommend(body: RecommendRequest):
+    """
+    Recommend 3 culturally-aligned movies for a given region,
+    based on a reference movie's score and genre context.
+    """
+    # Validate score range
+    if not (1 <= body.score <= 10):
+        raise HTTPException(400, "Score must be between 1 and 10")
+
+    prompt = f"""
+The movie "{body.title}" scored {body.score}/10 for cultural fit in {body.region}.
+Genre context: {body.genre or 'not specified'}.
+
+Recommend exactly 3 OTHER movies that would have HIGH cultural fit for {body.region}
+and would appeal to fans of "{body.title}".
+
+Return ONLY valid JSON as an array:
+[
+  {{"title": "...", "reason": "1 sentence why it fits {body.region}", "expected_score": 7}},
+  {{"title": "...", "reason": "...", "expected_score": 8}},
+  {{"title": "...", "reason": "...", "expected_score": 9}}
+]
+"""
+    try:
+        raw = await call_llm(prompt)
+        recommendations = parse_json_response(raw)
+        
+        # Basic validation of response structure
+        if not isinstance(recommendations, list) or len(recommendations) != 3:
+            raise ValueError("Response must be an array of exactly 3 items")
+        
+        for i, rec in enumerate(recommendations):
+            if not all(k in rec for k in ("title", "reason", "expected_score")):
+                raise ValueError(f"Recommendation #{i+1} missing required fields")
+        
+        return {"recommendations": recommendations}
+        
+    except Exception as e:
+        # Log error internally, return user-friendly message
+        print(f"[recommend] Error: {e}")
+        raise HTTPException(500, "Failed to generate recommendations. Please try again.")

@@ -2,6 +2,24 @@
 import { ComparisonEntry } from "@/types";
 import ExplainMoreBtn from "@/components/ExplainMoreBtn";
 import CulturalBreakdown from "@/components/CulturalBreakdown";
+import ScoreTrendChart from "@/components/ScoreTrendChart";
+
+// Helper to format cache timestamp into a readable relative time
+function formatTimeDiff(isoString: string): string {
+  const now = new Date();
+  const then = new Date(isoString);
+  const diffMs = now.getTime() - then.getTime();
+  if (diffMs < 0) return "just now";
+  
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return "just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return `${diffDays}d ago`;
+}
 
 function scoreColor(score: number | null): string {
   if (score === null) return "var(--text-3)";
@@ -98,17 +116,30 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                     }}>
                       {entry.region}
                     </span>
-                    {entry.cached && (
+                    
+                    {/* ✅ Enhanced cache/live indicator */}
+                    {entry.cached ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                        <span style={{
+                          fontSize: "10px", color: "var(--accent)",
+                          background: "var(--accent-dim)", border: "1px solid var(--accent-glow)",
+                          borderRadius: "4px", padding: "1px 6px", fontWeight: 700,
+                        }}>
+                          ⚡ cached
+                        </span>
+                       {(entry as any).cached_at && (
+  <span style={{ fontSize: "9px", color: "var(--text-3)" }}>
+    {formatTimeDiff((entry as any).cached_at)}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
                       <span style={{
-                        fontSize:     "10px",
-                        color:        "var(--accent)",
-                        background:   "var(--accent-dim)",
-                        border:       "1px solid var(--accent-glow)",
-                        borderRadius: "4px",
-                        padding:      "1px 6px",
-                        fontWeight:   700,
+                        fontSize: "10px", color: "var(--green)",
+                        background: "var(--green-dim)", border: "1px solid rgba(34,197,94,0.2)",
+                        borderRadius: "4px", padding: "1px 6px", fontWeight: 700,
                       }}>
-                        ⚡ cached
+                        🆕 fresh
                       </span>
                     )}
                   </div>
@@ -154,7 +185,7 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                 }} />
               </div>
 
-              {/* ✅ NEW: Cultural Breakdown */}
+              {/* ✅ Cultural Breakdown */}
               {entry.sub_scores && (
                 <CulturalBreakdown scores={entry.sub_scores} />
               )}
@@ -180,6 +211,12 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
           );
         })}
       </div>
+
+      {/* ✅ Score Trend Chart — visual comparison across regions */}
+      <div style={{ marginTop: "24px" }}>
+        <ScoreTrendChart movieTitle={movieTitle} entries={entries} />
+      </div>
+      
     </div>
   );
 }

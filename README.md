@@ -13,7 +13,7 @@ Check how well any movie fits a country's culture — or compare across multiple
 - 📊 Compare: 1 Movie × Many Countries
 - 🎬 2 Movies × 1 Country **[Experimental]**
 - 🗺️ Cultural Fit Map **[Experimental]**
-- 🔬 AI Deep Dive ("Explain More")
+- 🔬 AI Deep Dive ("Explain More")  **[UNDER WORKING]**
 - 📈 Cultural Breakdown (4 sub-scores)
 - ⭐ Favorites system
 - 📅 History (search, filter, sort)

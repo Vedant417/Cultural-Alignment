@@ -102,7 +102,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   { href:"/",        label:"Analyze", icon:"🔍" },
                   { href:"/compare", label:"Compare", icon:"📊" },
                   { href:"/history", label:"History", icon:"📜" },
-                  { href: "/map", label: "🗺️ Map", icon: "map" },
                 ].map(({ href, label, icon }) => (
                   <Link key={href} href={href} className="nav-link">
                     <span style={{ fontSize:"13px" }}>{icon}</span>

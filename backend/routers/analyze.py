@@ -248,3 +248,48 @@ Return ONLY valid JSON as an array:
         # Log error internally, return user-friendly message
         print(f"[recommend] Error: {e}")
         raise HTTPException(500, "Failed to generate recommendations. Please try again.")
+
+
+# ─────────────────────────────────────────────────────────────────
+# ✅ NEW: POST /api/analyze/explain
+# ─────────────────────────────────────────────────────────────────
+
+class ExplainRequest(BaseModel):
+    title:   str
+    region:  str
+    summary: str
+
+
+@router.post("/analyze/explain")
+async def explain_deeper(body: ExplainRequest):
+    """
+    Expand a brief cultural fit summary into a detailed breakdown
+    covering: Language & Dialogue, Religion & Values, Censorship Risk,
+    Audience Taste, and Historical/Political Context.
+    """
+    prompt = f"""
+You are a senior cultural analyst. A film "{body.title}" received this
+short cultural fit summary for {body.region}:
+
+"{body.summary}"
+
+Expand this into a detailed breakdown covering ALL of these factors:
+1. Language & Dialogue
+2. Religion & Values
+3. Censorship Risk
+4. Audience Taste
+5. Historical/Political Context
+
+Be specific and informative, 3-5 sentences per factor.
+Return ONLY valid JSON with NO markdown fences, NO preamble:
+{{"language":"...","religion":"...","censorship":"...","audience":"...","context":"..."}}
+"""
+    try:
+        raw = await ollama_generate(prompt)
+        # Strip markdown fences if LLM adds them
+        clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
+        data = extract_json_robust(clean)
+        return data
+    except Exception as e:
+        print(f"[explain] Error: {e}")
+        raise HTTPException(status_code=500, detail=f"LLM explain failed: {str(e)}")

@@ -37,6 +37,28 @@ export async function compareMovieAcrossRegions(
   return res.json();
 }
 
+// ── Movie-vs-Movie comparison (2 movies, 1 country) ────────────────
+export async function compareTwoMovies(
+  movieA:  string,
+  movieB:  string,
+  region:  string
+): Promise<any> {
+  const res = await fetch(`${BASE}/api/compare/movie-vs-movie`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({
+      movie_a: movieA.trim(),
+      movie_b: movieB.trim(),
+      region,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: "Comparison failed." }));
+    throw new Error((err as { detail?: string }).detail ?? "Movie-vs-movie comparison failed.");
+  }
+  return res.json();
+}
+
 // ── History ──────────────────────────────────────────────────────
 export async function getHistory(): Promise<AlignmentDocument[]> {
   const res = await fetch(`${BASE}/api/history`, { cache: "no-store" });

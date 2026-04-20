@@ -1,5 +1,6 @@
 "use client";
 import { ComparisonEntry } from "@/types";
+import { useLanguage } from "@/hooks/useLanguage";
 import ExplainMoreBtn from "@/components/ExplainMoreBtn";
 import CulturalBreakdown from "@/components/CulturalBreakdown";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
@@ -52,20 +53,21 @@ interface Props {
 }
 
 export default function ComparisonCards({ entries, movieTitle }: Props) {
+  const { t } = useLanguage();
   if (!entries.length) return null;
 
   return (
     <div>
       <p className="ca-label" style={{ marginBottom: "16px" }}>
-        🌍 Cultural Fit Comparison — {movieTitle}
+        🌍 {t("comparison_header")}
       </p>
 
       <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", marginBottom: "18px" }}>
         {[
-          { color: "var(--green)",  label: "8–10  Strong / Perfect" },
-          { color: "var(--amber)",  label: "6–7  Good / Moderate"   },
-          { color: "var(--orange)", label: "4–5  Weak"               },
-          { color: "var(--red)",    label: "1–3  Poor"               },
+          { color: "var(--green)",  label: t("score_range_high") },
+          { color: "var(--amber)",  label: t("score_range_good")   },
+          { color: "var(--orange)", label: t("score_range_weak")               },
+          { color: "var(--red)",    label: t("score_range_poor")               },
         ].map(({ color, label }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <div style={{ width: "10px", height: "10px", borderRadius: "2px",

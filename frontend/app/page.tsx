@@ -9,6 +9,7 @@ import MovieDetailsCard from "@/components/MovieDetailsCard";
 import ScoreBadge from "@/components/ScoreBadge";
 import ContentFlags from "@/components/ContentFlags";
 import SimilarMovies from "@/components/SimilarMovies";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 /* ── Inline UI atoms — all use CSS vars ──────────────────────── */
 function Spinner({ size = 36 }: { size?: number }) {
@@ -165,28 +166,6 @@ function AnalyzeContent() {
         }} />
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          {/* 🔤 Language Selector — added here since no navbar in this file */}
-          <div style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginBottom: "12px",
-          }}>
-            <select
-              value={lang}
-              onChange={(e) => changeLang(e.target.value as any)}
-              style={{
-                background: "var(--bg-deep)", color: "var(--text)",
-                border: "1px solid var(--border)", borderRadius: "8px",
-                padding: "4px 10px", fontSize: "12px", outline: "none", cursor: "pointer",
-              }}
-            >
-              <option value="en">🇬🇧 EN</option>
-              <option value="hi">🇮🇳 HI</option>
-              <option value="es">🇪🇸 ES</option>
-              <option value="ja">🇯🇵 JA</option>
-            </select>
-          </div>
-
           {/* Eyebrow label */}
           <div style={{
             display: "inline-flex",
@@ -331,7 +310,7 @@ function AnalyzeContent() {
           {/* Input type hints */}
           <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
             {[
-              { icon: "📝", text: '"Inception"' },
+              { icon: "📝", text: '"MOVIE TITLE"'},
               { icon: "🔗", text: "themoviedb.org/movie/27205" },
               { icon: "🎬", text: "imdb.com/title/tt1375666" },
               { icon: "📱", text: "m.imdb.com/title/tt1375666" },
@@ -365,7 +344,10 @@ function AnalyzeContent() {
               </button>
             ))}
           </div>
-        </div>
+          {/* LanguageSwitcher — immediately after Analyze button */}
+          <div style={{ marginTop: "12px", marginBottom: "8px" }}>
+            <LanguageSwitcher />
+          </div>        </div>
       </div>
 
       {/* ════════════════════════════════════════════════════════

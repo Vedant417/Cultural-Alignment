@@ -1,4 +1,5 @@
 "use client";
+import { useLanguage } from "@/hooks/useLanguage";
 
 interface SubScores {
   cultural_fit:    number;
@@ -8,13 +9,14 @@ interface SubScores {
 }
 
 const BREAKDOWN_META = [
-  { key: "cultural_fit",    label: "Cultural Fit",    icon: "🎭", invert: false },
-  { key: "censorship_risk", label: "Censorship Risk",  icon: "🚫", invert: true  },
-  { key: "language_fit",    label: "Language Fit",    icon: "🌍", invert: false },
-  { key: "market_appeal",   label: "Market Appeal",   icon: "📈", invert: false },
+  { key: "cultural_fit",    labelKey: "cultural_fit",    icon: "🎭", invert: false },
+  { key: "censorship_risk", labelKey: "censorship_risk",  icon: "🚫", invert: true  },
+  { key: "language_fit",    labelKey: "language_fit",    icon: "🌍", invert: false },
+  { key: "market_appeal",   labelKey: "market_appeal",   icon: "📈", invert: false },
 ] as const;
 
 export default function CulturalBreakdown({ scores }: { scores: SubScores }) {
+  const { t } = useLanguage();
   return (
     <div style={{
       display:             "grid",
@@ -22,7 +24,7 @@ export default function CulturalBreakdown({ scores }: { scores: SubScores }) {
       gap:                 "8px",
       marginTop:           "12px",
     }}>
-      {BREAKDOWN_META.map(({ key, label, icon, invert }) => {
+      {BREAKDOWN_META.map(({ key, labelKey, icon, invert }) => {
         const raw      = scores[key];
         const display  = invert ? 10 - raw : raw;
         const warn     = invert && raw >= 7;
@@ -39,7 +41,7 @@ export default function CulturalBreakdown({ scores }: { scores: SubScores }) {
           }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
               <span style={{ fontSize: "12px", color: "var(--text-2)" }}>
-                {icon} {label}
+                {icon} {t(labelKey as any)}
               </span>
               <span style={{ fontSize: "13px", fontWeight: 800, color: barColor }}>
                 {display}/10
@@ -56,7 +58,7 @@ export default function CulturalBreakdown({ scores }: { scores: SubScores }) {
             </div>
             {warn && (
               <p style={{ fontSize: "10px", color: "var(--red)", marginTop: "5px" }}>
-                ⚠️ High censorship risk
+                {t("high_censorship")}
               </p>
             )}
           </div>

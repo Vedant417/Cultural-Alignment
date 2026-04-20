@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getGroupedHistory } from "@/lib/api";
-import HistoryTable from "@/components/HistoryTable";
+import { useLanguage } from \"@/hooks/useLanguage\";
+import { getGroupedHistory } from \"@/lib/api\";
+import HistoryTable from \"@/components/HistoryTable\";
+import LanguageSwitcher from \"@/components/LanguageSwitcher\";
 import { COUNTRIES } from "@/components/CountrySelector";
 
 type HistoryEntry = {
@@ -24,6 +26,7 @@ type GroupedHistory = {
 };
 
 export default function HistoryPage() {
+  const { t } = useLanguage();
   const [groups, setGroups] = useState<GroupedHistory[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -83,14 +86,17 @@ export default function HistoryPage() {
   return (
     <div>
       {/* HEADER */}
-      <div style={{ marginBottom: "24px" }}>
-        <h1 style={{ fontSize: "28px", fontWeight: 800 }}>
-          📜 Analysis History
-        </h1>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px", flexWrap: "wrap", gap: "12px" }}>
+        <div>
+          <h1 style={{ fontSize: "28px", fontWeight: 800 }}>
+            {t("history_title")}
+          </h1>
 
-        <p style={{ color: "var(--text-2)" }}>
-          {filteredGroups.length} movies shown
-        </p>
+          <p style={{ color: "var(--text-2)" }}>
+            {t("history_subtitle")}
+          </p>
+        </div>
+        <LanguageSwitcher compact />
       </div>
 
       {/* ── CONTROLS BAR ── */}
@@ -120,7 +126,7 @@ export default function HistoryPage() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search movie…"
+            placeholder={t("search_placeholder")}
             style={{
               width: "100%",
               paddingLeft: "36px",
@@ -150,10 +156,10 @@ export default function HistoryPage() {
             fontSize: "13px",
           }}
         >
-          <option value="all">All scores</option>
-          <option value="high">High (8-10)</option>
-          <option value="mid">Mid (4-7)</option>
-          <option value="low">Low (1-3)</option>
+          <option value="all">{t("filter_all_scores")}</option>
+          <option value="high">{t("filter_high")}</option>
+          <option value="mid">{t("filter_mid")}</option>
+          <option value="low">{t("filter_low")}</option>
         </select>
 
         {/* Country filter */}
@@ -170,7 +176,7 @@ export default function HistoryPage() {
             fontSize: "13px",
           }}
         >
-          <option value="all">All countries</option>
+          <option value="all">{t("filter_all_countries")}</option>
           {COUNTRIES.map((c) => (
             <option key={c.name} value={c.name}>
               {c.flag} {c.name}
@@ -203,7 +209,7 @@ export default function HistoryPage() {
                 cursor: "pointer",
               }}
             >
-              {s === "latest" ? "📅 Latest" : "🏆 Highest"}
+              {s === "latest" ? t("sort_latest") : t("sort_highest")}
             </button>
           ))}
         </div>
@@ -211,7 +217,7 @@ export default function HistoryPage() {
 
       {/* CONTENT */}
       {loading ? (
-        <p style={{ color: "var(--text-2)" }}>Loading...</p>
+        <p style={{ color: "var(--text-2)" }}>{t("loading")}</p>
       ) : !filteredGroups.length ? (
         <div
           style={{
@@ -222,7 +228,8 @@ export default function HistoryPage() {
             color: "var(--text-3)",
           }}
         >
-          No matching results.
+          <p>{t("no_history")}</p>
+          <p style={{ fontSize: "14px" }}>{t("no_history_sub")}</p>
         </div>
       ) : (
         <HistoryTable data={filteredGroups} />

@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
+import { useLanguage } from "@/hooks/useLanguage";
 import { compareMovieAcrossRegions } from "@/lib/api";
 import { CompareResponse } from "@/types";
 import { COUNTRIES } from "@/components/CountrySelector";
 import ComparisonCards from "@/components/ComparisonCards";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 // (optional type placeholder if not defined yet)
 type MovieVsMovieResult = any;
@@ -43,6 +45,7 @@ function LoadingCard({ message }: { message: string }) {
 }
 
 export default function ComparePage() {
+  const { t } = useLanguage();
   const [movieInput, setMovieInput] = useState("");
 
   // ✅ Mode toggle states
@@ -134,10 +137,15 @@ export default function ComparePage() {
       {/* ── HERO ── */}
       <div style={{ marginBottom: "36px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: 800 }}>
-          Compare across countries
+          {t("compare_hero_1")} <span style={{
+            background: "linear-gradient(135deg, #6366f1, #a78bfa)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            backgroundClip: "text",
+          }}>{t("compare_hero_2")}</span>
         </h1>
         <p style={{ color: "var(--text-2)" }}>
-          Score movies with flexible comparison modes
+          {t("compare_subtitle")}
         </p>
       </div>
 
@@ -168,8 +176,8 @@ export default function ComparePage() {
             }}
           >
             {m === "countries"
-              ? "🌍 1 Movie × Countries"
-              : "🎬 2 Movies × 1 Country"}
+              ? t("mode_countries")
+              : t("mode_movies")}
           </button>
         ))}
       </div>
@@ -184,7 +192,7 @@ export default function ComparePage() {
         <input
           value={movieInput}
           onChange={(e) => setMovieInput(e.target.value)}
-          placeholder="Movie title or link"
+          placeholder={t("movie_placeholder")}
           style={{
             padding: "12px",
             borderRadius: "10px",
@@ -194,28 +202,20 @@ export default function ComparePage() {
         />
 
         <button onClick={handleCompare} className="ca-btn-primary">
-          {loading ? <Spinner /> : "Compare"}
+          {loading ? <Spinner /> : t("compare_btn")}
         </button>
+      </div>
 
-        {result && mode === "countries" && (
-          <button
-            onClick={() => {
-              const url = `${window.location.origin}/compare?movie=${encodeURIComponent(movieInput)}`;
-              navigator.clipboard.writeText(url);
-              alert("🔗 Link copied!");
-            }}
-            className="ca-btn-secondary"
-          >
-            🔗 Share
-          </button>
-        )}
+      {/* LanguageSwitcher ─ immediately after Compare button */}
+      <div style={{ marginTop: "12px", marginBottom: "8px" }}>
+        <LanguageSwitcher />
       </div>
 
       {/* ── MODE B EXTRA INPUTS ── */}
       {mode === "movies" && (
         <div style={{ marginBottom: "16px", display: "flex", gap: "10px" }}>
           <input
-            placeholder="Second movie title or link…"
+            placeholder={t("movie_b_placeholder")}
             value={movieB}
             onChange={(e) => setMovieB(e.target.value)}
             style={{
@@ -247,6 +247,9 @@ export default function ComparePage() {
       {/* ── COUNTRY SELECT (Mode A only) ── */}
       {mode === "countries" && (
         <div style={{ marginBottom: "20px" }}>
+          <p style={{ fontSize: "14px", color: "var(--text-2)", marginBottom: "10px" }}>
+            {t("select_countries")}
+          </p>
           {COUNTRIES.map((c) => (
             <button
               key={c.name}
@@ -271,7 +274,7 @@ export default function ComparePage() {
       )}
 
       {/* ── RESULTS ── */}
-      {loading && <LoadingCard message="Comparing..." />}
+      {loading && <LoadingCard message={t("comparing")} />}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
       {/* Mode A Results */}
@@ -334,7 +337,7 @@ export default function ComparePage() {
           color: "var(--text-3)",
           padding: "40px"
         }}>
-          Enter a movie and compare across countries
+          {t("no_result_hint")}
         </div>
       )}
     </div>

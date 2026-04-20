@@ -1,6 +1,7 @@
 "use client";
 import { useState }      from "react";
 import { useLanguage }   from "@/hooks/useLanguage";
+import TranslatedText    from "@/components/TranslatedText";
 
 interface DeepAnalysis {
   language:   string;
@@ -35,7 +36,7 @@ const FACTOR_LABEL_KEY: Record<string, string> = {
 };
 
 export default function ExplainMoreBtn({ title, region, summary }: Props) {
-  const { t }                       = useLanguage();
+  const { t, translateAsync }           = useLanguage();
   const [open,  setOpen]            = useState(false);
   const [state, setState]           = useState<State>("idle");
   const [data,  setData]            = useState<DeepAnalysis | null>(null);
@@ -154,7 +155,7 @@ export default function ExplainMoreBtn({ title, region, summary }: Props) {
                   background: "var(--bg-card)", border: "1px solid var(--border)",
                   borderRadius: "7px", padding: "4px 12px", cursor: "pointer",
                 }}>
-                  ✕ Close
+                  ✕ {t("close_btn")}
                 </button>
               </div>
             </div>
@@ -173,9 +174,11 @@ export default function ExplainMoreBtn({ title, region, summary }: Props) {
                     <span>{FACTOR_ICON[key]}</span>
                     {t(FACTOR_LABEL_KEY[key])}
                   </p>
-                  <p style={{ fontSize: "13px", color: "var(--text-2)", lineHeight: 1.65, margin: 0 }}>
-                    {data[key]}
-                  </p>
+                  <TranslatedText
+                    text={data[key]}
+                    variant="body"
+                    showSkeleton={false}
+                  />
                 </div>
               ))}
             </div>

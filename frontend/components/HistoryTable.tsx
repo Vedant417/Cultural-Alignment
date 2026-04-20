@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLanguage } from "@/hooks/useLanguage";
 
 type HistoryEntry = {
   id: string;
@@ -38,6 +39,7 @@ function scoreBg(score: number | null) {
 }
 
 export default function HistoryTable({ data }: { data: GroupedHistory[] }) {
+  const { t } = useLanguage();
   const [openIndex, setOpenIndex] = useState<number | null>(null);
   const router = useRouter();
 
@@ -110,7 +112,7 @@ export default function HistoryTable({ data }: { data: GroupedHistory[] }) {
                   fontSize: "13px",
                   color: "var(--text-2)"
                 }}>
-                  {movie.entries.length} countries
+                  {movie.entries.length} {t("expand_countries")}
                 </div>
               </div>
 
@@ -123,7 +125,7 @@ export default function HistoryTable({ data }: { data: GroupedHistory[] }) {
                 borderRadius: "999px",
                 padding: "4px 10px",
               }}>
-                Best: {best.score}/10 {best.target_region}
+                {t("sort_highest")}: {best.score}/10 {best.target_region}
               </div>
 
               <div style={{
@@ -198,7 +200,7 @@ export default function HistoryTable({ data }: { data: GroupedHistory[] }) {
                           color: "var(--text-3)",
                         }}
                       >
-                        Hover for reasoning
+                        💬 {t("ai_reasoning")}
                       </div>
                     </div>
                   );

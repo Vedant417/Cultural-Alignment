@@ -106,7 +106,31 @@ input, select, textarea {
   font-family: 'Inter', sans-serif;
   font-size:   15px;
   color:       var(--text);
+  background-color: var(--bg-input);
+  caret-color: var(--accent);
 }
+
+input::placeholder {
+  color: var(--text-3);
+  opacity: 1;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-dim);
+}
+
+/* Ensure select options have proper colors */
+select {
+  background-color: var(--bg-input);
+  color: var(--text);
+}
+
+select option {
+  background-color: var(--bg-card);
+  color: var(--text);
+}
+
 button {
   font-family: 'Inter', sans-serif;
   font-size:   14px;

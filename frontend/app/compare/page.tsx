@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
-import { compareMovieAcrossRegions } from "@/lib/api";
+import { compareMovieAcrossRegions, compareTwoMovies } from "@/lib/api";
 import { CompareResponse } from "@/types";
 import { COUNTRIES } from "@/components/CountrySelector";
 import ComparisonCards from "@/components/ComparisonCards";
@@ -106,24 +106,21 @@ export default function ComparePage() {
       }
     }
 
-    // Mode B (UI ready – backend hook later)
+    // Mode B (Movie vs Movie)
     if (mode === "movies") {
-      if (!movieInput.trim() || !movieB.trim()) return;
+      if (!movieInput.trim() || !movieB.trim() || !singleCountry) return;
 
       setLoading(true);
       setError(null);
       setMvmResult(null);
 
       try {
-        // TODO: replace with actual API
-        // const data = await compareMoviesInCountry(movieInput, movieB, singleCountry);
-        // setMvmResult(data);
-
-        console.log("Compare Movies Mode:", {
-          movieA: movieInput,
-          movieB,
-          country: singleCountry,
-        });
+        const data = await compareTwoMovies(
+          movieInput.trim(),
+          movieB.trim(),
+          singleCountry
+        );
+        setMvmResult(data);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Comparison failed.");
       } finally {
@@ -197,7 +194,10 @@ export default function ComparePage() {
             padding: "12px",
             borderRadius: "10px",
             border: "1px solid var(--border)",
-            flex: 1
+            background: "var(--bg-input)",
+            color: "var(--text)",
+            flex: 1,
+            fontSize: "14px"
           }}
         />
 
@@ -222,7 +222,10 @@ export default function ComparePage() {
               padding: "12px",
               borderRadius: "10px",
               border: "1px solid var(--border)",
-              flex: 1
+              background: "var(--bg-input)",
+              color: "var(--text)",
+              flex: 1,
+              fontSize: "14px"
             }}
           />
 
@@ -233,6 +236,9 @@ export default function ComparePage() {
               padding: "12px",
               borderRadius: "10px",
               border: "1px solid var(--border)",
+              background: "var(--bg-input)",
+              color: "var(--text)",
+              fontSize: "14px"
             }}
           >
             {COUNTRIES.map((c) => (

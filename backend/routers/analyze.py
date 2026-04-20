@@ -260,7 +260,15 @@ class ExplainRequest(BaseModel):
     summary: str
 
 
-@router.post("/analyze/explain")
+class ExplainResponse(BaseModel):
+    language:   str
+    religion:   str
+    censorship: str
+    audience:   str
+    context:    str
+
+
+@router.post("/analyze/explain", response_model=ExplainResponse)
 async def explain_deeper(body: ExplainRequest):
     """
     Expand a brief cultural fit summary into a detailed breakdown
@@ -286,10 +294,36 @@ Return ONLY valid JSON with NO markdown fences, NO preamble:
 """
     try:
         raw = await ollama_generate(prompt)
+        if not raw:
+            raise ValueError("Empty response from LLM")
+        
         # Strip markdown fences if LLM adds them
         clean = raw.strip().lstrip("```json").lstrip("```").rstrip("```").strip()
         data = extract_json_robust(clean)
-        return data
+        
+        # Validate required fields
+        required_fields = ["language", "religion", "censorship", "audience", "context"]
+        missing_fields = [f for f in required_fields if f not in data or not data[f]]
+        
+        if missing_fields:
+            raise ValueError(f"Missing fields in response: {missing_fields}")
+        
+        # Return validated response
+        return ExplainResponse(**{
+            "language": data.get("language", ""),
+            "religion": data.get("religion", ""),
+            "censorship": data.get("censorship", ""),
+            "audience": data.get("audience", ""),
+            "context": data.get("context", "")
+        })
+    
+    except ValueError as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[explain] Validation error: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid response format: {str(e)}")
     except Exception as e:
-        print(f"[explain] Error: {e}")
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"[explain] Error: {e}")
         raise HTTPException(status_code=500, detail=f"LLM explain failed: {str(e)}")

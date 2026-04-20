@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useLanguage } from \"@/hooks/useLanguage\";
-import { getGroupedHistory } from \"@/lib/api\";
-import HistoryTable from \"@/components/HistoryTable\";
-import LanguageSwitcher from \"@/components/LanguageSwitcher\";
+import { useLanguage } from "@/hooks/useLanguage";
+import { getGroupedHistory } from "@/lib/api";
+import HistoryTable from "@/components/HistoryTable";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { COUNTRIES } from "@/components/CountrySelector";
 
 type HistoryEntry = {
@@ -74,10 +74,26 @@ export default function HistoryPage() {
 
       return true;
     })
+    // Filter individual entries within each group
+    .map((g) => ({
+      ...g,
+      entries: g.entries.filter((e) => {
+        if (filterCountry !== "all" && e.target_region !== filterCountry) {
+          return false;
+        }
+        if (filterScore !== "all") {
+          const s = e.score ?? 0;
+          if (filterScore === "high" && s < 8) return false;
+          if (filterScore === "mid" && (s < 4 || s >= 8)) return false;
+          if (filterScore === "low" && s >= 4) return false;
+        }
+        return true;
+      })
+    }))
     .sort((a, b) => {
       if (sortBy === "highest") {
-        const maxA = Math.max(...a.entries.map((e) => e.score ?? 0));
-        const maxB = Math.max(...b.entries.map((e) => e.score ?? 0));
+        const maxA = Math.max(...a.entries.map((e) => e.score ?? 0), 0);
+        const maxB = Math.max(...b.entries.map((e) => e.score ?? 0), 0);
         return maxB - maxA;
       }
       return b.latest_date > a.latest_date ? 1 : -1;
@@ -133,7 +149,7 @@ export default function HistoryPage() {
               paddingRight: "12px",
               height: "38px",
               borderRadius: "10px",
-              background: "var(--input-bg)",
+              background: "var(--bg-input)",
               color: "var(--text)",
               border: "1px solid var(--border)",
               outline: "none",
@@ -150,7 +166,7 @@ export default function HistoryPage() {
             height: "38px",
             borderRadius: "10px",
             padding: "0 12px",
-            background: "var(--input-bg)",
+            background: "var(--bg-input)",
             color: "var(--text)",
             border: "1px solid var(--border)",
             fontSize: "13px",
@@ -170,7 +186,7 @@ export default function HistoryPage() {
             height: "38px",
             borderRadius: "10px",
             padding: "0 12px",
-            background: "var(--input-bg)",
+            background: "var(--bg-input)",
             color: "var(--text)",
             border: "1px solid var(--border)",
             fontSize: "13px",

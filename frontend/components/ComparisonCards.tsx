@@ -2,6 +2,7 @@
 import { ComparisonEntry } from "@/types";
 import { useLanguage } from "@/hooks/useLanguage";
 import ExplainMoreBtn from "@/components/ExplainMoreBtn";
+import TranslatedText from "@/components/TranslatedText";
 import CulturalBreakdown from "@/components/CulturalBreakdown";
 import ScoreTrendChart from "@/components/ScoreTrendChart";
 
@@ -194,20 +195,23 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
 
               {/* AI reasoning */}
               {entry.reason && (
-                <p style={{
-                  fontSize:   "13px",
-                  color:      "var(--text-2)",
-                  lineHeight: 1.6,
-                  margin:     0,
-                  paddingLeft:"36px",
-                }}>
-                  💬 {entry.reason}
-                  <ExplainMoreBtn
-                    title={movieTitle}
-                    region={entry.region}
-                    summary={entry.reason}
-                  />
-                </p>
+                <div style={{ paddingLeft: "36px" }}>
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
+                    <span style={{ fontSize: "16px", flexShrink: 0, marginTop: "2px" }}>💬</span>
+                    <div style={{ flex: 1 }}>
+                      <TranslatedText
+                        text={entry.reason}
+                        variant="body"
+                        showSkeleton={true}
+                      />
+                      <ExplainMoreBtn
+                        title={movieTitle}
+                        region={entry.region}
+                        summary={entry.reason}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           );

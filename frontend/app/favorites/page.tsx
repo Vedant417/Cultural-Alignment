@@ -3,11 +3,13 @@ import { useEffect, useState } from "react";
 import { AlignmentDocument } from "@/types";
 import { getFavorites, removeFavorite } from "@/lib/api";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import FavoritesDetailModal from "@/components/FavoritesDetailModal";
 
 export default function FavoritesPage() {
-  const [items, setItems]     = useState<AlignmentDocument[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [items, setItems]           = useState<AlignmentDocument[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState<string | null>(null);
+  const [selectedItem, setSelectedItem] = useState<AlignmentDocument | null>(null);
 
   useEffect(() => {
     const loadFavorites = async () => {
@@ -33,6 +35,10 @@ export default function FavoritesPage() {
     } catch (err) {
       console.error("Failed to remove favorite:", err);
     }
+  };
+
+  const handleViewDetails = (item: AlignmentDocument) => {
+    setSelectedItem(item);
   };
 
   const SCORE_COLOR: Record<number, string> = {
@@ -128,13 +134,25 @@ export default function FavoritesPage() {
           {items.map((item) => (
             <div
               key={item.id}
-              className="ca-card"
+              onClick={() => handleViewDetails(item)}
               style={{
                 padding: "18px 20px",
+                border: "1px solid var(--border)",
+                borderRadius: "12px",
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
                 gap: "16px",
+                cursor: "pointer",
+                transition: "all 0.15s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "var(--bg-deep)";
+                e.currentTarget.style.borderColor = "var(--accent)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
+                e.currentTarget.style.borderColor = "var(--border)";
               }}
             >
               <div style={{ flex: 1 }}>
@@ -201,40 +219,45 @@ export default function FavoritesPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div style={{
-                display: "flex",
-                gap: "8px",
-                flexShrink: 0,
-              }}>
-                <button
-                  onClick={() => handleRemove(item.id)}
-                  style={{
-                    background: "var(--amber-dim)",
-                    border: "1px solid var(--amber)",
-                    borderRadius: "8px",
-                    padding: "6px 12px",
-                    fontSize: "12px",
-                    fontWeight: 700,
-                    color: "var(--amber)",
-                    cursor: "pointer",
-                    transition: "all 0.15s",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "var(--amber)";
-                    e.currentTarget.style.color = "var(--text)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = "var(--amber-dim)";
-                    e.currentTarget.style.color = "var(--amber)";
-                  }}
-                >
-                  ★ Remove
-                </button>
-              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleRemove(item.id);
+                }}
+                style={{
+                  background: "var(--amber-dim)",
+                  border: "1px solid var(--amber)",
+                  borderRadius: "8px",
+                  padding: "6px 12px",
+                  fontSize: "12px",
+                  fontWeight: 700,
+                  color: "var(--amber)",
+                  cursor: "pointer",
+                  transition: "all 0.15s",
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--amber)";
+                  e.currentTarget.style.color = "var(--text)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "var(--amber-dim)";
+                  e.currentTarget.style.color = "var(--amber)";
+                }}
+              >
+                ★ Remove
+              </button>
             </div>
           ))}
         </div>
+      )}
+
+      {/* Modal */}
+      {selectedItem && (
+        <FavoritesDetailModal
+          data={selectedItem}
+          onClose={() => setSelectedItem(null)}
+        />
       )}
     </div>
   );

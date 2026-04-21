@@ -40,12 +40,29 @@ class AnalysisResult(BaseModel):
     similar_movies: List[SimilarMovie] = []
 
 
+class DeepAnalysisSections(BaseModel):
+    language_dialogue:  Optional[str] = None
+    religion_values:    Optional[str] = None
+    censorship_risk:    Optional[str] = None
+    audience_breakdown: Optional[str] = None
+    historical_context: Optional[str] = None
+
+
+class DeepAnalysisCache(BaseModel):
+    """Cached deep analysis for a movie+region combo"""
+    sections:      DeepAnalysisSections
+    generated_at:  datetime = Field(default_factory=datetime.utcnow)
+
+
 class AlignmentDocument(BaseModel):
     searched_at:   datetime = Field(default_factory=datetime.utcnow)
     movie:         MovieInfo
     origin_region: RegionInfo
     target_region: str
     result:        AnalysisResult
+    deep_analysis: Optional[DeepAnalysisCache] = None  # ✅ NEW: cached deep analysis
+    favorited:     Optional[bool] = None  # ✅ NEW: favorites flag
+    favorited_at:  Optional[datetime] = None  # ✅ NEW: when favorited
 
 
 # ── New: comparison entry (used by /analyze/compare) ──

@@ -2,8 +2,10 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { analyzeMovie, getCachedAnalysis } from "@/lib/api";
-import { AlignmentDocument } from "@/types";
+import { AlignmentDocument, AnalysisResult, MovieInfo } from "@/types";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useTranslation } from "@/hooks/useTranslation";
+import type { SupportedLang } from "@/lib/translate";
 import CountrySelector from "@/components/CountrySelector";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
 import ScoreBadge from "@/components/ScoreBadge";
@@ -83,13 +85,16 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
 function AnalyzeContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { t, lang, changeLang } = useLanguage();
+  const { t, lang } = useLanguage();
+  const { translateResult, translateMovie, isTranslating } = useTranslation();
   
   const [movie, setMovie] = useState("");
   const [country, setCountry] = useState("India");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AlignmentDocument | null>(null);
+  const [displayResult, setDisplayResult] = useState<AnalysisResult | null>(null);
+  const [displayMovie, setDisplayMovie] = useState<MovieInfo | null>(null);
   const [inputFocused, setInputFocused] = useState(false);
 
   /* Pre-load from history redirect (Next.js params: movie/region) */
@@ -133,15 +138,50 @@ function AnalyzeContent() {
     setLoading(true);
     setError(null);
     setResult(null);
+    setDisplayResult(null);
+    setDisplayMovie(null);
     try {
       const data = await analyzeMovie(movie.trim(), country);
       setResult(data);
+      // Auto-translate if not English
+      if (lang !== "en") {
+        const translatedResult = await translateResult(data.result, lang as SupportedLang);
+        const translatedMovie = await translateMovie(data.movie, lang as SupportedLang);
+        setDisplayResult({ ...data.result, ...translatedResult });
+        setDisplayMovie({ ...data.movie, ...translatedMovie });
+      } else {
+        setDisplayResult(data.result);
+        setDisplayMovie(data.movie);
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : t("something_went_wrong"));
     } finally {
       setLoading(false);
     }
   };
+
+  // Auto-translate when language changes
+  useEffect(() => {
+    if (!result) return;
+    if (lang === "en") {
+      setDisplayResult(result.result);
+      setDisplayMovie(result.movie);
+      return;
+    }
+    const doTranslate = async () => {
+      try {
+        const translatedResult = await translateResult(result.result, lang as SupportedLang);
+        const translatedMovie = await translateMovie(result.movie, lang as SupportedLang);
+        setDisplayResult({ ...result.result, ...translatedResult });
+        setDisplayMovie({ ...result.movie, ...translatedMovie });
+      } catch (e) {
+        console.error("Translation error:", e);
+        setDisplayResult(result.result);
+        setDisplayMovie(result.movie);
+      }
+    };
+    doTranslate();
+  }, [lang, result, translateResult, translateMovie]);
 
   const isLink = movie.includes("themoviedb") || movie.includes("imdb");
 
@@ -360,6 +400,32 @@ function AnalyzeContent() {
       {result && !loading && (
         <div className="fade-up">
 
+          {/* Translation indicator */}
+          {isTranslating && (
+            <div style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              background: "var(--accent-dim)",
+              border: "1px solid var(--accent-glow)",
+              borderRadius: "99px",
+              padding: "4px 12px",
+              fontSize: "12px",
+              color: "var(--accent)",
+              marginBottom: "12px",
+            }}>
+              <span style={{
+                width: "10px", height: "10px",
+                border: "2px solid var(--accent)",
+                borderTopColor: "transparent",
+                borderRadius: "50%",
+                display: "inline-block",
+                animation: "spin 0.7s linear infinite",
+              }} />
+              {t("translating") || "Translating..."}
+            </div>
+          )}
+
           {/* Cache notice */}
           {result.cached && (
             <div style={{
@@ -390,7 +456,7 @@ function AnalyzeContent() {
               <SectionHeading>{t("movie_details_heading")}</SectionHeading>
               <div className="ca-card">
                 <MovieDetailsCard
-                  movie={result.movie}
+                  movie={displayMovie || result.movie}
                   originRegion={result.origin_region?.region ?? t("unknown")}
                 />
               </div>
@@ -401,16 +467,16 @@ function AnalyzeContent() {
               <SectionHeading>{t("cultural_fit_heading")} — {result.target_region}</SectionHeading>
               <div className="ca-card">
                 <ScoreBadge
-                  result={result.result}
+                  result={displayResult || result.result}
                   targetRegion={result.target_region}
                   cached={result.cached}
                 />
               </div>
               <div className="ca-card">
-                <ContentFlags flags={result.result.content_flags} />
+                <ContentFlags flags={(displayResult || result.result).content_flags} />
               </div>
               <div className="ca-card">
-                <SimilarMovies movies={result.result.similar_movies} />
+                <SimilarMovies movies={displayResult?.similar_movies || result.result.similar_movies} />
               </div>
             </div>
           </div>

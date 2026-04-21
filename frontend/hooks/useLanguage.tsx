@@ -53,11 +53,14 @@ export function LanguageProvider({ children }: { children: ReactNode }): JSX.Ele
     if (translationCache.has(textHash)) {
       const langMap = translationCache.get(textHash)!;
       if (langMap.has(target)) {
+        console.log(`[useLanguage] Cache hit for ${target}`);
         return langMap.get(target)!;
       }
     }
 
     try {
+      console.log(`[useLanguage] Translating to ${target}: ${text.substring(0, 50)}...`);
+      
       // Call backend translation API
       const response = await fetch("/api/translate", {
         method: "POST",
@@ -70,12 +73,14 @@ export function LanguageProvider({ children }: { children: ReactNode }): JSX.Ele
       });
 
       if (!response.ok) {
-        console.warn(`Translation API error: ${response.status}`);
+        console.warn(`[useLanguage] Translation API error: ${response.status} ${response.statusText}`);
         return text; // Fallback to original
       }
 
       const data = await response.json();
       const translated = data.translated || text;
+
+      console.log(`[useLanguage] Translation success: ${translated.substring(0, 50)}...`);
 
       // Cache result
       if (!translationCache.has(textHash)) {
@@ -85,7 +90,7 @@ export function LanguageProvider({ children }: { children: ReactNode }): JSX.Ele
 
       return translated;
     } catch (error) {
-      console.warn("Translation failed:", error);
+      console.warn("[useLanguage] Translation failed:", error instanceof Error ? error.message : String(error));
       return text; // Fallback to original
     }
   };

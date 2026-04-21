@@ -327,3 +327,115 @@ Return ONLY valid JSON with NO markdown fences, NO preamble:
         logger = logging.getLogger(__name__)
         logger.error(f"[explain] Error: {e}")
         raise HTTPException(status_code=500, detail=f"LLM explain failed: {str(e)}")
+
+
+# ─────────────────────────────────────────────────────────────────
+# POST /api/analyze/deep
+# ─────────────────────────────────────────────────────────────────
+
+class DeepAnalysisRequest(BaseModel):
+    movie_title:   str
+    target_region: str
+    score:         int
+    label:         str
+    brief_reason:  str
+
+
+@router.post("/analyze/deep")
+async def deep_analysis(req: DeepAnalysisRequest):
+    """
+    Generate a richer cultural analysis for a movie+region combo.
+    ✅ NEW: Checks database cache first — if found, returns instantly!
+    Only calls Ollama if not cached. After generating, saves to database.
+    Uses the existing score/label as context so the LLM stays consistent.
+    Called from the History page slide panel — does NOT re-fetch TMDB.
+    """
+    db = get_db()
+    
+    # ✅ Check cache in database
+    cached_doc = await db.alignments.find_one({
+        "movie.title":   {"$regex": f"^{req.movie_title}$", "$options": "i"},
+        "target_region": req.target_region,
+        "deep_analysis": {"$exists": True, "$ne": None}
+    })
+    
+    if cached_doc and cached_doc.get("deep_analysis"):
+        # Return cached analysis
+        cached_analysis = cached_doc["deep_analysis"]
+        print(f"[deep_analysis] ✅ Cache HIT for {req.movie_title} / {req.target_region}")
+        return {
+            "movie_title":    req.movie_title,
+            "target_region":  req.target_region,
+            "score":          req.score,
+            "label":          req.label,
+            "sections": cached_analysis.get("sections", {}),
+            "cached": True,
+        }
+    
+    # ✅ Not cached — call Ollama
+    print(f"[deep_analysis] 🔄 Cache MISS for {req.movie_title} / {req.target_region} — calling Ollama...")
+    
+    prompt = (
+        f'You are a senior cultural media analyst writing a detailed report.\n\n'
+        f'Movie: "{req.movie_title}"\n'
+        f'Country: {req.target_region}\n'
+        f'Cultural Fit Score: {req.score}/10 ({req.label})\n'
+        f'Brief context: {req.brief_reason}\n\n'
+        f'Write a DETAILED cultural analysis report with these FIVE sections.\n'
+        f'Each section: one clear heading + 2-3 specific sentences.\n'
+        f'Be specific to {req.target_region} — mention real cultural references.\n\n'
+        f'Reply ONLY with raw JSON, no markdown:\n'
+        f'{{'
+        f'"language_dialogue": "How language/dialogue fits or clashes with {req.target_region} audiences.",'
+        f'"religion_values": "How the movie\'s values align with or challenge {req.target_region} norms.",'
+        f'"censorship_risk": "Specific content that may face censorship in {req.target_region} and why.",'
+        f'"audience_breakdown": "Which specific audience segments in {req.target_region} will love or avoid this.",'
+        f'"historical_context": "Any historical or political context making this movie more/less relevant in {req.target_region}."'
+        f'}}'
+    )
+
+    raw = await ollama_generate(prompt, timeout=240)
+    if not raw:
+        raise HTTPException(
+            status_code=500,
+            detail="Deep analysis timed out. Is Ollama/Groq running?"
+        )
+
+    parsed = extract_json_robust(raw)
+    if not parsed:
+        raise HTTPException(
+            status_code=500,
+            detail="Could not parse deep analysis response. Try again."
+        )
+
+    sections = {
+        "language_dialogue":   parsed.get("language_dialogue", ""),
+        "religion_values":     parsed.get("religion_values", ""),
+        "censorship_risk":     parsed.get("censorship_risk", ""),
+        "audience_breakdown":  parsed.get("audience_breakdown", ""),
+        "historical_context":  parsed.get("historical_context", ""),
+    }
+    
+    # ✅ Save to database cache
+    try:
+        await db.alignments.update_one(
+            {
+                "movie.title":   {"$regex": f"^{req.movie_title}$", "$options": "i"},
+                "target_region": req.target_region,
+            },
+            {"$set": {"deep_analysis": {"sections": sections, "generated_at": datetime.utcnow()}}},
+            upsert=False
+        )
+        print(f"[deep_analysis] 💾 Saved to cache for {req.movie_title} / {req.target_region}")
+    except Exception as e:
+        print(f"[deep_analysis] ⚠️ Failed to cache: {e}")
+        # Don't fail the request if caching fails
+
+    return {
+        "movie_title":    req.movie_title,
+        "target_region":  req.target_region,
+        "score":          req.score,
+        "label":          req.label,
+        "sections": sections,
+        "cached": False,
+    }

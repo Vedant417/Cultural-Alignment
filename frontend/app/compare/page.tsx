@@ -1,8 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
+import { useTranslation } from "@/hooks/useTranslation";
 import { compareMovieAcrossRegions, compareTwoMovies } from "@/lib/api";
 import { CompareResponse } from "@/types";
+import type { SupportedLang } from "@/lib/translate";
 import { COUNTRIES } from "@/components/CountrySelector";
 import ComparisonCards from "@/components/ComparisonCards";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -45,14 +47,15 @@ function LoadingCard({ message }: { message: string }) {
 }
 
 export default function ComparePage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const { translateEntries, isTranslating } = useTranslation();
   const [movieInput, setMovieInput] = useState("");
 
   // ✅ Mode toggle states
   const [mode, setMode] = useState<"countries" | "movies">("countries");
   const [movieB, setMovieB] = useState("");
-  const [singleCountry, setSingleCountry] = useState("India");
-  const [mvmResult, setMvmResult] = useState<MovieVsMovieResult | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState("India");
+  const [twoMovieResult, setTwoMovieResult] = useState<any | null>(null);
 
   const [selected, setSelected] = useState<string[]>([
     "United States",
@@ -65,6 +68,7 @@ export default function ComparePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<CompareResponse | null>(null);
+  const [displayResult, setDisplayResult] = useState<CompareResponse | null>(null);
   const [focused, setFocused] = useState(false);
 
   const [recommendations, setRecommendations] = useState<any[]>([]);
@@ -73,6 +77,32 @@ export default function ComparePage() {
     setSelected((p) =>
       p.includes(name) ? p.filter((c) => c !== name) : [...p, name]
     );
+
+  // Auto-translate when language changes
+  useEffect(() => {
+    if (!result) return;
+    if (lang === "en") {
+      setDisplayResult(result);
+      return;
+    }
+    const doTranslate = async () => {
+      try {
+        const translated = await translateEntries(result.entries, lang as SupportedLang);
+        setDisplayResult({
+          ...result,
+          entries: translated.map((t, i) => ({
+            ...result.entries[i],
+            reason: t.reason,
+            label: t.label,
+          })),
+        });
+      } catch (e) {
+        console.error("Translation error:", e);
+        setDisplayResult(result);
+      }
+    };
+    doTranslate();
+  }, [lang, result, translateEntries]);
 
   const handleCompare = async () => {
     // Mode A (existing)
@@ -89,6 +119,20 @@ export default function ComparePage() {
           selected
         );
         setResult(data);
+        // Initialize display with current language
+        if (lang === "en") {
+          setDisplayResult(data);
+        } else {
+          const translated = await translateEntries(data.entries, lang as SupportedLang);
+          setDisplayResult({
+            ...data,
+            entries: translated.map((t, i) => ({
+              ...data.entries[i],
+              reason: t.reason,
+              label: t.label,
+            })),
+          });
+        }
 
         try {
           const rec = await fetch(
@@ -108,19 +152,22 @@ export default function ComparePage() {
 
     // Mode B (Movie vs Movie)
     if (mode === "movies") {
-      if (!movieInput.trim() || !movieB.trim() || !singleCountry) return;
+      if (!movieInput.trim() || !movieB.trim()) {
+        setError("Enter both Movie A and Movie B.");
+        return;
+      }
 
       setLoading(true);
       setError(null);
-      setMvmResult(null);
+      setTwoMovieResult(null);
 
       try {
         const data = await compareTwoMovies(
           movieInput.trim(),
           movieB.trim(),
-          singleCountry
+          selectedRegion
         );
-        setMvmResult(data);
+        setTwoMovieResult(data);
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Comparison failed.");
       } finally {
@@ -230,8 +277,8 @@ export default function ComparePage() {
           />
 
           <select
-            value={singleCountry}
-            onChange={(e) => setSingleCountry(e.target.value)}
+            value={selectedRegion}
+            onChange={(e) => setSelectedRegion(e.target.value)}
             style={{
               padding: "12px",
               borderRadius: "10px",
@@ -283,18 +330,44 @@ export default function ComparePage() {
       {loading && <LoadingCard message={t("comparing")} />}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
+      {/* Translation indicator */}
+      {isTranslating && (
+        <div style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "6px",
+          background: "var(--accent-dim)",
+          border: "1px solid var(--accent-glow)",
+          borderRadius: "99px",
+          padding: "4px 12px",
+          fontSize: "12px",
+          color: "var(--accent)",
+          marginBottom: "12px",
+        }}>
+          <span style={{
+            width: "10px", height: "10px",
+            border: "2px solid var(--accent)",
+            borderTopColor: "transparent",
+            borderRadius: "50%",
+            display: "inline-block",
+            animation: "spin 0.7s linear infinite",
+          }} />
+          {t("translating") || "Translating..."}
+        </div>
+      )}
+
       {/* Mode A Results */}
-      {mode === "countries" && result && !loading && (
+      {mode === "countries" && (displayResult || result) && !loading && (
         <div className="fade-up">
           <ComparisonCards
-            entries={result.entries}
-            movieTitle={result.movie.title}
+            entries={(displayResult || result)!.entries}
+            movieTitle={(displayResult || result)!.movie.title}
           />
         </div>
       )}
 
       {/* Mode B Placeholder */}
-      {mode === "movies" && mvmResult && (
+      {mode === "movies" && twoMovieResult && (
         <div className="fade-up">
           {/* future Movie vs Movie UI */}
         </div>

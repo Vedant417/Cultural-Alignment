@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import analyze, history, translate
+from routers import analyze, history, translate, compare
 from db.connection import connect_db, close_db
 from modules.ollama_client import get_ollama_model   # unchanged import
 
@@ -29,6 +29,7 @@ async def shutdown():
 app.include_router(analyze.router)
 app.include_router(history.router)
 app.include_router(translate.router)
+app.include_router(compare.router)
 
 
 @app.get("/health")

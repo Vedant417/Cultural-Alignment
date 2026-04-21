@@ -57,10 +57,9 @@ export interface ComparisonEntry {
   label: string;
   reason?: string;
   cached?: boolean;
-
-  // ✅ FIXED to match CulturalBreakdown
   sub_scores?: SubScores;
 }
+
 export interface CompareResponse {
   movie:   MovieInfo;
   entries: ComparisonEntry[];
@@ -71,6 +70,7 @@ export interface CountryOption {
   flag:  string;
   group: string;
 }
+
 export interface HistoryEntry {
   id:            string;
   target_region: string;
@@ -80,7 +80,6 @@ export interface HistoryEntry {
   searched_at:   string;
 }
 
-// One grouped movie (all countries for that movie)
 export interface GroupedHistory {
   title:        string;
   poster_url:   string;
@@ -88,13 +87,6 @@ export interface GroupedHistory {
   release_date: string;
   latest_date:  string;
   entries:      HistoryEntry[];
-}
-
-export interface SubScores {
-  cultural_fit:    number;
-  censorship_risk: number;
-  language_fit:    number;
-  market_appeal:   number;
 }
 
 

@@ -11,12 +11,6 @@ class TranslateRequest(BaseModel):
     source_language: str = "en"
 
 
-class BatchTranslateRequest(BaseModel):
-    texts: list[str]
-    target_language: str = "en"
-    source_language: str = "en"
-
-
 class TranslateResponse(BaseModel):
     original: str
     translated: str
@@ -25,8 +19,15 @@ class TranslateResponse(BaseModel):
 
 @router.post("/translate")
 async def translate(request: TranslateRequest):
-    """Translate a single text to target language."""
+    """Translate a single text using MyMemory API (free, no credentials)."""
     try:
+        if not request.text or request.target_language == request.source_language:
+            return TranslateResponse(
+                original=request.text,
+                translated=request.text,
+                target_language=request.target_language
+            )
+        
         translated = await translate_text(
             text=request.text,
             target_language=request.target_language,
@@ -41,24 +42,3 @@ async def translate(request: TranslateRequest):
     
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Translation failed: {str(e)}")
-
-
-@router.post("/translate/batch")
-async def translate_batch(request: BatchTranslateRequest):
-    """Translate multiple texts efficiently."""
-    try:
-        translated_texts = await batch_translate(
-            texts=request.texts,
-            target_language=request.target_language,
-            source_language=request.source_language
-        )
-        
-        return {
-            "original": request.texts,
-            "translated": translated_texts,
-            "target_language": request.target_language,
-            "count": len(translated_texts)
-        }
-    
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Batch translation failed: {str(e)}")

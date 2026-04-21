@@ -1,14 +1,21 @@
-import { SimilarMovie } from "@/types";
+import { useState } from "react";
 
-export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
-  if (!movies?.length) return null;
-  
+interface Recommendation {
+  title: string;
+  poster_url: string;
+  release_date: string;
+  tmdb_id?: number;
+}
+
+export default function RecommendationsSlider({ recommendations }: { recommendations?: Recommendation[] }) {
+  if (!recommendations?.length) return null;
+
   return (
     <div style={{ background: "var(--bg-2)", border: "1px solid var(--border)", borderRadius: "16px", padding: "20px" }}>
       <p style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px" }}>
-        🍿 You Might Also Like
+        ⭐ Recommendations For You
       </p>
-      
+
       {/* Horizontal Slider Container */}
       <div style={{
         display: "flex",
@@ -18,7 +25,7 @@ export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
         scrollBehavior: "smooth",
         scrollSnapType: "x mandatory",
       }}>
-        {movies.map((m, i) => (
+        {recommendations.map((rec, i) => (
           <div
             key={i}
             style={{
@@ -28,7 +35,7 @@ export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
             }}
           >
             {/* Poster Image */}
-            {m.poster_url ? (
+            {rec.poster_url ? (
               <div style={{
                 position: "relative",
                 width: "100%",
@@ -38,10 +45,12 @@ export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
                 background: "var(--bg-1)",
                 border: "1px solid var(--border)",
                 marginBottom: "8px",
+                cursor: "pointer",
+                transition: "transform 0.2s ease",
               }}>
                 <img
-                  src={m.poster_url}
-                  alt={m.title}
+                  src={rec.poster_url}
+                  alt={rec.title}
                   style={{
                     width: "100%",
                     height: "100%",
@@ -62,13 +71,11 @@ export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
                 marginBottom: "8px",
                 color: "var(--text-2)",
                 fontSize: "12px",
-                textAlign: "center",
-                padding: "8px",
               }}>
                 No Poster
               </div>
             )}
-            
+
             {/* Movie Info */}
             <p style={{
               fontSize: "12px",
@@ -80,30 +87,17 @@ export default function SimilarMovies({ movies }: { movies: SimilarMovie[] }) {
               textOverflow: "ellipsis",
               whiteSpace: "nowrap",
             }}>
-              {m.title}
+              {rec.title}
             </p>
-            
-            {m.release_date && (
+
+            {rec.release_date && (
               <p style={{
                 fontSize: "10px",
                 color: "var(--text-3)",
-                marginBottom: "6px",
               }}>
-                {new Date(m.release_date).getFullYear()}
+                {new Date(rec.release_date).getFullYear()}
               </p>
             )}
-            
-            <p style={{
-              fontSize: "11px",
-              color: "var(--text-2)",
-              lineHeight: 1.4,
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}>
-              {m.reason}
-            </p>
           </div>
         ))}
       </div>

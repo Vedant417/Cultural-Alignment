@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from db.connection import get_db
 from db.models import MovieInfo, RegionInfo, AnalysisResult, AlignmentDocument, ContentFlags, SimilarMovie
 from modules.tmdb import fetch_movie
+from modules.hybrid_fetcher import hybrid_fetch_movie
 from modules.region import detect_region
 from modules.scorer import get_cultural_score
 from datetime import datetime
@@ -97,10 +98,10 @@ async def compare_two_movies(req: TwoMovieRequest):
     if not req.target_region.strip():
         raise HTTPException(status_code=400, detail="Target region is required.")
 
-    # ── Fetch both movies in parallel ──
+    # ── Fetch both movies in parallel (hybrid) ──
     movie_a, movie_b = await asyncio.gather(
-        fetch_movie(req.movie_input_a.strip()),
-        fetch_movie(req.movie_input_b.strip()),
+        hybrid_fetch_movie(req.movie_input_a.strip()),
+        hybrid_fetch_movie(req.movie_input_b.strip()),
     )
 
     if not movie_a:

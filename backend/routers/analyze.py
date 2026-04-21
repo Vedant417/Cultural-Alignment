@@ -11,7 +11,8 @@ from db.models import (
     ContentFlags, SimilarMovie,
 )
 
-from modules.tmdb   import fetch_movie
+from modules.tmdb   import fetch_movie, fetch_recommendations, fetch_genres
+from modules.hybrid_fetcher import hybrid_fetch_movie
 from modules.region import detect_region
 from modules.scorer import get_cultural_score, get_multi_cultural_scores
 from modules.ollama_client import ollama_generate, extract_json_robust
@@ -29,7 +30,7 @@ async def _get_cached(title: str, target_region: str) -> dict | None:
 
 
 # ── Build AlignmentDocument ───────────────────────────────────────
-def _build_doc(movie_data, origin, target_region, score_data):
+def _build_doc(movie_data, origin, target_region, score_data, recommendations=None, genres=None):
     flags_raw   = score_data.get("content_flags", {})
     similar_raw = score_data.get("similar_movies", [])
 
@@ -72,6 +73,8 @@ def _build_doc(movie_data, origin, target_region, score_data):
                 for sm in similar_raw[:3]
                 if isinstance(sm, dict)
             ],
+            recommendations=recommendations or [],
+            genres=genres or [],
         )
     )
 
@@ -85,6 +88,8 @@ async def analyze(request: AnalyzeRequest):
     movie_data = await fetch_movie(request.movie_input)
     if not movie_data:
         raise HTTPException(404, f"Movie not found: '{request.movie_input}'")
+
+    print(f"[FETCH_MOVIE] {movie_data.get('title')}: poster_url={bool(movie_data.get('poster_url'))}, tmdb_id={movie_data.get('tmdb_id')}")
 
     cached_doc = await _get_cached(movie_data["title"], request.target_region)
     if cached_doc:
@@ -103,7 +108,16 @@ async def analyze(request: AnalyzeRequest):
     if not score_data:
         raise HTTPException(500, "Scoring failed")
 
-    doc = _build_doc(movie_data, origin, request.target_region, score_data)
+    # Fetch recommendations and genres
+    tmdb_id = movie_data.get("tmdb_id")
+    recommendations = []
+    genres = []
+    
+    if tmdb_id:
+        recommendations = await fetch_recommendations(str(tmdb_id))
+        genres = await fetch_genres(str(tmdb_id))
+
+    doc = _build_doc(movie_data, origin, request.target_region, score_data, recommendations, genres)
 
     db = get_db()
     result = await db.alignments.insert_one(doc.model_dump())
@@ -119,18 +133,80 @@ async def analyze(request: AnalyzeRequest):
     }
 
 
+# ─────────────────────────────────────────────────────────────────# GET /api/analyze/genre-movies
 # ─────────────────────────────────────────────────────────────────
-# POST /api/analyze/compare
+@router.get("/analyze/genre-movies")
+async def get_movies_by_genre(genre_name: str, limit: int = 20):
+    """
+    Get all movies in the database that have a specific genre.
+    Returns movies with poster, title, and release date.
+    """
+    db = get_db()
+    
+    # Query all alignments and filter by genre in application layer
+    all_alignments = await db.alignments.find({}).to_list(None)
+    
+    matching_movies = []
+    seen_titles = set()  # Deduplicate by title
+    
+    for alignment in all_alignments:
+        movie = alignment.get("movie", {})
+        title = movie.get("title", "")
+        
+        if title in seen_titles:
+            continue
+        
+        genres = movie.get("genres", [])
+        genre_names = [g.get("name", "").lower() for g in genres if isinstance(g, dict)]
+        
+        if genre_name.lower() in genre_names:
+            seen_titles.add(title)
+            matching_movies.append({
+                "title": title,
+                "poster_url": movie.get("poster_url", ""),
+                "release_date": movie.get("release_date", ""),
+                "tmdb_id": movie.get("tmdb_id"),
+            })
+            
+            if len(matching_movies) >= limit:
+                break
+    
+    if not matching_movies:
+        return {
+            "genre": genre_name,
+            "count": 0,
+            "movies": [],
+            "message": f"No movies found for genre: {genre_name}"
+        }
+    
+    return {
+        "genre": genre_name,
+        "count": len(matching_movies),
+        "movies": matching_movies,
+    }
+
+
+# ─────────────────────────────────────────────────────────────────# POST /api/analyze/compare
 # ─────────────────────────────────────────────────────────────────
 @router.post("/analyze/compare", response_model=CompareResponse)
 async def compare(request: CompareRequest):
+    """Compare one movie across multiple regions."""
 
-    movie_data = await fetch_movie(request.movie_input)
+    movie_data = await hybrid_fetch_movie(request.movie_input)
     if not movie_data:
         raise HTTPException(404, "Movie not found")
 
     title = movie_data["title"]
     regions = list(dict.fromkeys(request.regions))
+
+    # Fetch recommendations and genres once for all regions
+    tmdb_id = movie_data.get("tmdb_id")
+    recommendations = []
+    genres = []
+    
+    if tmdb_id:
+        recommendations = await fetch_recommendations(str(tmdb_id))
+        genres = await fetch_genres(str(tmdb_id))
 
     cached_entries = []
     uncached_regions = []
@@ -174,7 +250,7 @@ async def compare(request: CompareRequest):
                 "similar_movies": [],
             }
 
-            doc_to_save = _build_doc(movie_data, origin, region, score_data_for_db)
+            doc_to_save = _build_doc(movie_data, origin, region, score_data_for_db, recommendations, genres)
             db = get_db()
             await db.alignments.insert_one(doc_to_save.model_dump())
 

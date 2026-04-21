@@ -11,6 +11,9 @@ import MovieDetailsCard from "@/components/MovieDetailsCard";
 import ScoreBadge from "@/components/ScoreBadge";
 import ContentFlags from "@/components/ContentFlags";
 import SimilarMovies from "@/components/SimilarMovies";
+import RecommendationsSlider from "@/components/RecommendationsSlider";
+import GenreButtons from "@/components/GenreButtons";
+import PopularityTrendChart from "@/components/PopularityTrendChart";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 /* ── Inline UI atoms — all use CSS vars ──────────────────────── */
@@ -475,9 +478,27 @@ function AnalyzeContent() {
               <div className="ca-card">
                 <ContentFlags flags={(displayResult || result.result).content_flags} />
               </div>
+              {result.movie?.popularity && result.movie.popularity > 0 && (
+                <div className="ca-card">
+                  <PopularityTrendChart 
+                    popularity={result.movie.popularity} 
+                    title={result.movie.title}
+                  />
+                </div>
+              )}
               <div className="ca-card">
                 <SimilarMovies movies={displayResult?.similar_movies || result.result.similar_movies} />
               </div>
+              {(displayResult?.recommendations?.length || result.result.recommendations?.length) > 0 && (
+                <div className="ca-card">
+                  <RecommendationsSlider recommendations={displayResult?.recommendations || result.result.recommendations} />
+                </div>
+              )}
+              {(displayResult?.genres?.length || result.result.genres?.length) > 0 && (
+                <div className="ca-card">
+                  <GenreButtons genres={displayResult?.genres || result.result.genres} />
+                </div>
+              )}
             </div>
           </div>
 

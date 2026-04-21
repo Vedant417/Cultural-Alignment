@@ -27,7 +27,7 @@ export default function SearchBar({ onAnalyze, loading }: Props) {
                      text-slate-100 placeholder-slate-600 text-sm
                      focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
                      transition-all disabled:opacity-50"
-          placeholder="e.g. Inception, KGF: Chapter 2, Parasite, Toxic..."
+          placeholder="Title, TMDb link, or IMDb link…"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKey}

@@ -10,6 +10,9 @@ class MovieInfo(BaseModel):
     release_date: str
     language:     str
     poster_url:   Optional[str] = ""
+    genres:       Optional[List[dict]] = []
+    popularity:   Optional[float] = 0
+    tmdb_id:      Optional[int] = None
 
 
 class RegionInfo(BaseModel):
@@ -29,6 +32,9 @@ class ContentFlags(BaseModel):
 class SimilarMovie(BaseModel):
     title:  str
     reason: str
+    poster_url: Optional[str] = ""
+    release_date: Optional[str] = ""
+    tmdb_id: Optional[int] = None
 
 
 class AnalysisResult(BaseModel):
@@ -38,6 +44,8 @@ class AnalysisResult(BaseModel):
     content_flags:  ContentFlags = Field(default_factory=ContentFlags)
     audience_note:  str = ""
     similar_movies: List[SimilarMovie] = []
+    recommendations: Optional[List[dict]] = []
+    genres: Optional[List[dict]] = []
 
 
 class DeepAnalysisSections(BaseModel):

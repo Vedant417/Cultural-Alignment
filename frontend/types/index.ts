@@ -4,6 +4,9 @@ export interface MovieInfo {
   release_date: string;
   language:     string;
   poster_url?:  string;
+  genres?:      Array<{id: number; name: string}>;
+  popularity?:  number;
+  tmdb_id?:     number;
 }
 
 export interface RegionInfo {
@@ -21,8 +24,11 @@ export interface ContentFlags {
 }
 
 export interface SimilarMovie {
-  title:  string;
-  reason: string;
+  title:        string;
+  reason:       string;
+  poster_url?:  string;
+  release_date?: string;
+  tmdb_id?:     number;
 }
 
 export interface AnalysisResult {
@@ -32,6 +38,9 @@ export interface AnalysisResult {
   content_flags:  ContentFlags;
   audience_note:  string;
   similar_movies: SimilarMovie[];
+  sub_scores?:    SubScores;
+  recommendations?: Array<{title: string; poster_url: string; release_date: string; tmdb_id?: number}>;
+  genres?: Array<{id: number; name: string}>;
 }
 
 export interface AlignmentDocument {

@@ -186,3 +186,14 @@ export async function getFavorites(): Promise<AlignmentDocument[]> {
   if (!res.ok) throw new Error("Failed to fetch favorites");
   return res.json();
 }
+
+// ── Genre Movies ─────────────────────────────────────────────────
+export async function getMoviesByGenre(
+  genreName: string,
+  limit: number = 20
+): Promise<{genre: string; count: number; movies: Array<{title: string; poster_url: string; release_date: string; tmdb_id?: number}>; message?: string}> {
+  const params = new URLSearchParams({ genre_name: genreName, limit: limit.toString() });
+  const res = await fetch(`${BASE}/api/analyze/genre-movies?${params}`, { cache: "no-store" });
+  if (!res.ok) throw new Error(`Failed to fetch movies for genre: ${genreName}`);
+  return res.json();
+}

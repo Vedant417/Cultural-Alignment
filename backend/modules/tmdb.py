@@ -111,6 +111,9 @@ async def _build_movie_dict(movie: dict) -> dict:
         "release_date": movie.get("release_date", ""),
         "language":     movie.get("original_language", ""),
         "poster_url":   f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else "",
+        "genres":       movie.get("genres", []),
+        "popularity":   movie.get("popularity", 0),
+        "tmdb_id":      movie.get("id"),
     }
 
 
@@ -188,3 +191,45 @@ async def fetch_movie(raw_input: str) -> dict | None:
         result = await fetch_by_title(parsed["value"])
 
     return result
+
+
+async def fetch_recommendations(tmdb_id: str) -> list:
+    """Fetch similar/recommended movies from TMDB with poster details."""
+    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}/recommendations"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url, params={
+                "api_key": settings.TMDB_API_KEY,
+                "language": "en-US"
+            })
+            if resp.status_code == 200:
+                results = resp.json().get("results", [])
+                return [
+                    {
+                        "title": m.get("title", ""),
+                        "poster_url": f"https://image.tmdb.org/t/p/w500{m.get('poster_path', '')}" if m.get("poster_path") else "",
+                        "release_date": m.get("release_date", ""),
+                        "tmdb_id": m.get("id"),
+                    }
+                    for m in results[:12]
+                ]
+    except Exception:
+        pass
+    return []
+
+
+async def fetch_genres(tmdb_id: str) -> list:
+    """Fetch genres for a specific movie."""
+    url = f"https://api.themoviedb.org/3/movie/{tmdb_id}"
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url, params={
+                "api_key": settings.TMDB_API_KEY,
+                "language": "en-US"
+            })
+            if resp.status_code == 200:
+                genres = resp.json().get("genres", [])
+                return [{"id": g.get("id"), "name": g.get("name", "")} for g in genres]
+    except Exception:
+        pass
+    return []

@@ -5,6 +5,7 @@ from typing import Literal
 class Settings(BaseSettings):
     # Existing settings
     TMDB_API_KEY:    str = "a3d117500dc275ba72d9e9268a7c579d"
+    OMDB_API_KEY:    str = "c1b9c6df"                     # Optional: OMDb fallback
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     MONGODB_URI:     str = "mongodb://localhost:27017"
     MONGODB_DB:      str = "culture_align"

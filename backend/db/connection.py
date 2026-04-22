@@ -17,8 +17,20 @@ def _validate_mongo_uri(uri: str) -> None:
 async def connect_db():
     """Called on FastAPI startup. Creates the Motor client and selects the DB."""
     global _client, _db
-    mongodb_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    
+    # DEBUG: Check if env variable is loaded
+    mongodb_uri = os.getenv("MONGODB_URI")
+    print(f"🔍 DEBUG: MONGODB_URI = {mongodb_uri}")
+    
+    if not mongodb_uri:
+        raise RuntimeError(
+            "MONGODB_URI environment variable is not set. "
+            "Set it in Railway environment variables or your .env file."
+        )
+    
     mongodb_db = os.getenv("MONGODB_DB", "culture_align")
+    print(f"🔍 DEBUG: MONGODB_DB = {mongodb_db}")
+    
     _validate_mongo_uri(mongodb_uri)
     _client = AsyncIOMotorClient(mongodb_uri)
     _db     = _client[mongodb_db]

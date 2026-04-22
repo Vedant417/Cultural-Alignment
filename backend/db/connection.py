@@ -1,6 +1,6 @@
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import OperationFailure
-from config import settings
+from backend.config import settings
 
 _client: AsyncIOMotorClient | None = None
 _db:     AsyncIOMotorDatabase | None = None

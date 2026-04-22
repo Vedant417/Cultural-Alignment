@@ -1,6 +1,6 @@
 import re
 import httpx
-from config import settings
+from backend.config import settings
 
 
 # ── Normalise helpers ─────────────────────────────────────────────────────────

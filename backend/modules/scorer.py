@@ -1,4 +1,4 @@
-from modules.ollama_client import ollama_generate, extract_json_robust
+from backend.modules.ollama_client import ollama_generate, extract_json_robust
 
 
 # ─── Single country score ─────────────────────────────────────────

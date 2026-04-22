@@ -1,12 +1,12 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from db.connection import get_db
-from db.models import MovieInfo, RegionInfo, AnalysisResult, AlignmentDocument, ContentFlags, SimilarMovie
-from modules.tmdb import fetch_movie
-from modules.hybrid_fetcher import hybrid_fetch_movie
-from modules.region import detect_region
-from modules.scorer import get_cultural_score
-from modules.ollama_client import ollama_generate, extract_json_robust
+from backend.db.connection import get_db
+from backend.db.models import MovieInfo, RegionInfo, AnalysisResult, AlignmentDocument, ContentFlags, SimilarMovie
+from backend.modules.tmdb import fetch_movie
+from backend.modules.hybrid_fetcher import hybrid_fetch_movie
+from backend.modules.region import detect_region
+from backend.modules.scorer import get_cultural_score
+from backend.modules.ollama_client import ollama_generate, extract_json_robust
 from datetime import datetime
 import asyncio
 

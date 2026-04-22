@@ -4,7 +4,6 @@
     "builder": "dockerfile"
   },
   "deploy": {
-    "numReplicas": 1,
-    "startCommand": "uvicorn main:app --host 0.0.0.0 --port"
+    "numReplicas": 1
   }
 }

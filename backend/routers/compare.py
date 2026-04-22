@@ -153,38 +153,60 @@ async def compare_two_movies(req: TwoMovieRequest):
         raise HTTPException(status_code=500, detail=f"Scoring failed for '{movie_b['title']}'. Is Ollama/Groq running?")
 
     # ── Run AI comparison to determine winner (always runs AI once) ──
-    print(f"[Comparison] Running AI to determine winner between '{movie_a['title']}' and '{movie_b['title']}'")
-    comparison_prompt = f"""
-    You are a cultural media analyst. Compare these TWO movies for the region: {req.target_region}
+    score_a_val = score_a.get("score") or 0
+    score_b_val = score_b.get("score") or 0
+    score_difference = abs(score_a_val - score_b_val)
+    is_tied = score_difference <= 0.5  # Within 0.5 point = tied
     
-    Movie A: {movie_a['title']} ({movie_a.get('release_date', 'Unknown')})
-    - Origin: {origin_a.get('region', 'Unknown')}
-    - Cultural Fit Score: {score_a.get('score', 'N/A')}/10
-    - Analysis: {score_a.get('reason', 'No analysis available')}
+    print(f"[Comparison] Score A: {score_a_val}, Score B: {score_b_val}, Difference: {score_difference}")
     
-    Movie B: {movie_b['title']} ({movie_b.get('release_date', 'Unknown')})
-    - Origin: {origin_b.get('region', 'Unknown')}
-    - Cultural Fit Score: {score_b.get('score', 'N/A')}/10
-    - Analysis: {score_b.get('reason', 'No analysis available')}
-    
-    Which movie is MORE culturally aligned for {req.target_region} audiences? Reply with ONLY:
-    {{"winner": "A" or "B", "confidence": 0-10, "reason": "brief explanation"}}
-    """
-    
-    ai_comparison_result = await ollama_generate(comparison_prompt, timeout=15)
-    a_wins = True  # default
-    
-    if ai_comparison_result:
-        try:
-            import json
-            comparison_data = extract_json_robust(ai_comparison_result)
-            if comparison_data and comparison_data.get("winner") == "B":
-                a_wins = False
-            print(f"[Comparison] AI Decision: {'A' if a_wins else 'B'} wins")
-        except:
-            print("[Comparison] Using score-based decision")
-            score_a_val = score_a.get("score") or 0
-            score_b_val = score_b.get("score") or 0
+    if is_tied:
+        print(f"[Comparison] Scores are TIED - both movies equally culturally aligned")
+        a_wins = True  # Mark both as "tied" will be handled on frontend
+    else:
+        print(f"[Comparison] Running AI to determine winner between '{movie_a['title']}' and '{movie_b['title']}'")
+        comparison_prompt = f"""
+        You are a cultural media analyst. Compare these TWO movies for the region: {req.target_region}
+        
+        Movie A: {movie_a['title']} ({movie_a.get('release_date', 'Unknown')})
+        - Origin: {origin_a.get('region', 'Unknown')}
+        - Cultural Fit Score: {score_a_val}/10
+        - Analysis: {score_a.get('reason', 'No analysis available')}
+        - Themes & Content: {score_a.get('label', 'Unknown')}
+        
+        Movie B: {movie_b['title']} ({movie_b.get('release_date', 'Unknown')})
+        - Origin: {origin_b.get('region', 'Unknown')}
+        - Cultural Fit Score: {score_b_val}/10
+        - Analysis: {score_b.get('reason', 'No analysis available')}
+        - Themes & Content: {score_b.get('label', 'Unknown')}
+        
+        TASK: Which movie is MORE culturally aligned for {req.target_region} audiences?
+        
+        FACTORS TO CONSIDER:
+        - Cultural themes and values alignment with {req.target_region}
+        - Language and accessibility
+        - Content sensitivity (violence, adult themes, religion, drugs)
+        - Audience demographics and preferences in {req.target_region}
+        - Universal appeal vs cultural specificity
+        
+        Reply with ONLY raw JSON (no markdown):
+        {{"winner": "A" or "B", "confidence": 1-10, "reason": "Why this movie is better for {req.target_region}. Explain specifically what makes it more culturally aligned."}}
+        """
+        
+        ai_comparison_result = await ollama_generate(comparison_prompt, timeout=20)
+        a_wins = True  # default
+        
+        if ai_comparison_result:
+            try:
+                import json
+                comparison_data = extract_json_robust(ai_comparison_result)
+                if comparison_data and comparison_data.get("winner") == "B":
+                    a_wins = False
+                print(f"[Comparison] AI Decision: {'A' if a_wins else 'B'} wins with confidence {comparison_data.get('confidence', 'N/A')}")
+            except:
+                print("[Comparison] Using score-based decision")
+                a_wins = score_a_val >= score_b_val
+        else:
             a_wins = score_a_val >= score_b_val
 
     # ── Save both to MongoDB (non-blocking) ──

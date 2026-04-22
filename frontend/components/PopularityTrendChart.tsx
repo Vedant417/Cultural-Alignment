@@ -52,6 +52,8 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
       border: "1px solid var(--border)",
       borderRadius: "16px",
       padding: "20px",
+      overflow: "hidden",
+      width: "100%",
     }}>
       {/* Header */}
       <div style={{ marginBottom: "14px" }}>
@@ -82,14 +84,19 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
         </div>
       </div>
 
-      {/* Chart */}
-      <svg
-        width="100%"
-        height="140"
-        viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
-        preserveAspectRatio="xMidYMid meet"
-        style={{ overflow: "visible" }}
-      >
+      {/* Chart Container */}
+      <div style={{ overflow: "hidden", width: "100%" }}>
+        <svg
+          width="100%"
+          height="auto"
+          viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
+          preserveAspectRatio="xMidYMid meet"
+          style={{ 
+            display: "block", 
+            overflow: "hidden",
+            minHeight: "140px",
+          }}
+        >
         {/* Background grid */}
         {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
           const y = PADDING.top + chartHeight * (1 - ratio);
@@ -172,7 +179,8 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
             </text>
           );
         })}
-      </svg>
+        </svg>
+      </div>
 
       {/* Footer */}
       <p style={{

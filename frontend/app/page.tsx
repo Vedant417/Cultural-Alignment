@@ -10,11 +10,10 @@ import CountrySelector from "@/components/CountrySelector";
 import MovieDetailsCard from "@/components/MovieDetailsCard";
 import ScoreBadge from "@/components/ScoreBadge";
 import ContentFlags from "@/components/ContentFlags";
-import SimilarMovies from "@/components/SimilarMovies";
-import RecommendationsSlider from "@/components/RecommendationsSlider";
 import GenreButtons from "@/components/GenreButtons";
 import PopularityTrendChart from "@/components/PopularityTrendChart";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import VoiceInput from "@/components/VoiceInput";
 
 /* ── Inline UI atoms — all use CSS vars ──────────────────────── */
 function Spinner({ size = 36 }: { size?: number }) {
@@ -335,6 +334,14 @@ function AnalyzeContent() {
               />
             </div>
 
+            {/* Voice Input */}
+            <VoiceInput
+              onVoiceInput={(text: string) => {
+                setMovie(text);
+              }}
+              disabled={loading}
+            />
+
             {/* Analyze button */}
             <button
               onClick={handleAnalyze}
@@ -467,7 +474,31 @@ function AnalyzeContent() {
 
             {/* Right */}
             <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-              <SectionHeading>{t("cultural_fit_heading")} — {result.target_region}</SectionHeading>
+              {/* Header with compare button */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px" }}>
+                <SectionHeading>{t("cultural_fit_heading")} — {result.target_region}</SectionHeading>
+                <a
+                  href="/compare"
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "7px",
+                    background: "linear-gradient(135deg,#6366f1,#4f46e5)",
+                    color: "#fff",
+                    padding: "9px 16px",
+                    borderRadius: "10px",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                    textDecoration: "none",
+                    boxShadow: "0 4px 14px var(--accent-glow)",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  📊 {t("go_to_compare")}
+                </a>
+              </div>
+
+              {/* Score Badge */}
               <div className="ca-card">
                 <ScoreBadge
                   result={displayResult || result.result}
@@ -475,9 +506,13 @@ function AnalyzeContent() {
                   cached={result.cached}
                 />
               </div>
+
+              {/* Content Flags */}
               <div className="ca-card">
                 <ContentFlags flags={(displayResult || result.result).content_flags} />
               </div>
+
+              {/* Popularity Trend */}
               {result.movie?.popularity && result.movie.popularity > 0 && (
                 <div className="ca-card">
                   <PopularityTrendChart 
@@ -486,62 +521,14 @@ function AnalyzeContent() {
                   />
                 </div>
               )}
-              <div className="ca-card">
-                <SimilarMovies movies={displayResult?.similar_movies || result.result.similar_movies} />
-              </div>
-              {(displayResult?.recommendations?.length || result.result.recommendations?.length) > 0 && (
+              
+              {/* Genres */}
+              {result?.result?.genres && (displayResult?.genres?.length || result?.result?.genres?.length) > 0 && (
                 <div className="ca-card">
-                  <RecommendationsSlider recommendations={displayResult?.recommendations || result.result.recommendations} />
-                </div>
-              )}
-              {(displayResult?.genres?.length || result.result.genres?.length) > 0 && (
-                <div className="ca-card">
-                  <GenreButtons genres={displayResult?.genres || result.result.genres} />
+                  <GenreButtons genres={displayResult?.genres || result?.result?.genres || []} />
                 </div>
               )}
             </div>
-          </div>
-
-          {/* Quick-navigate to compare */}
-          <div style={{
-            marginTop: "28px",
-            padding: "18px 22px",
-            background: "var(--accent-dim)",
-            border: "1px solid var(--accent-glow)",
-            borderRadius: "14px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: "12px",
-          }}>
-            <div>
-              <p style={{ color: "var(--text)", fontWeight: 600, marginBottom: "2px" }}>
-                {t("compare_prompt_title")}
-              </p>
-              <p style={{ color: "var(--text-3)", fontSize: "13px" }}>
-  {t("compare_prompt_desc")} <em>{result.movie.title}</em>
-</p>
-            </div>
-            <a
-              href="/compare"
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "7px",
-                background: "linear-gradient(135deg,#6366f1,#4f46e5)",
-                color: "#fff",
-                padding: "9px 18px",
-                borderRadius: "10px",
-                fontWeight: 700,
-                fontSize: "14px",
-                textDecoration: "none",
-                boxShadow: "0 4px 14px var(--accent-glow)",
-                whiteSpace: "nowrap",
-              }}
-            >
-              📊 {t("go_to_compare")}
-            </a>
           </div>
         </div>
       )}

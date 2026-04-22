@@ -16,32 +16,38 @@ async def get_cultural_score(
     overview = movie_data["overview"][:220].rsplit(" ", 1)[0]
     loc      = f"{state}, {target_region}" if state else target_region
 
-    # Scoring reference table embedded concisely
+    # Enhanced scoring reference table with cultural context
     scoring_guide = (
         "Scoring guide: "
-        "10=perfect native fit, "
-        "8-9=strong fit (same region/language), "
-        "6-7=moderate fit (global appeal but cultural gap), "
-        "4-5=weak fit (language barrier or value mismatch), "
-        "2-3=poor fit (content conflicts with local norms), "
-        "1=very poor (likely offensive or alien). "
-        "Same language as target = +2 pts. "
-        "Conservative region (Middle East, South Asia) + adult/violence content = -2 to -3 pts."
+        "10=perfect cultural fit (native language, deep cultural understanding), "
+        "8-9=strong fit (same region/language or universal themes + relevant culture), "
+        "6-7=moderate fit (global appeal but cultural nuances matter), "
+        "4-5=weak fit (language/value mismatches affect enjoyment), "
+        "2-3=poor fit (content conflicts with local cultural norms), "
+        "1=very poor (likely offensive or culturally alien). "
+        "Apply modifiers: Same language/region = +1-2 pts | Conservative region with adult/violence = -2 to -3 pts | "
+        "Universal genre + global relevance = +1 pt | Niche/culturally specific film = -1 to -2 pts."
     )
 
     prompt = (
-        f'Rate this movie for {loc}. Movie: "{title}". '
-        f'Language: {lang}. Overview: {overview}. '
-        f'{scoring_guide} '
-        f'Be specific to {target_region} culture. Do not default to 7 or 8. '
-        f'Reply ONLY with raw JSON:\n'
+        f'You are a cultural media analyst. Evaluate this movie for {loc}.\n'
+        f'Movie: "{title}" | Language: {lang}\n'
+        f'Overview: {overview}\n\n'
+        f'{scoring_guide}\n\n'
+        f'IMPORTANT:\n'
+        f'- Be specific to {target_region} culture, values, and audience preferences\n'
+        f'- Explain WHY this score makes sense for {target_region} specifically\n'
+        f'- Consider: content sensitivity, language accessibility, cultural themes, audience demographics\n'
+        f'- Do NOT default to middle scores (6-7). Be decisive and justified.\n'
+        f'- Reason must explain the cultural alignment/misalignment specific to {target_region}\n\n'
+        f'Reply ONLY with raw JSON (no markdown):\n'
         f'{{"score":<int 1-10>,"label":"<Poor Fit|Weak Fit|Moderate Fit|Good Fit|Strong Fit|Perfect Fit>",'
-        f'"reason":"<Two sentences specific to {target_region}>.",'
+        f'"reason":"<Explain in 2 sentences why this score for {target_region}: consider cultural themes, language, content sensitivity, and local audience preferences.>",'
         f'"content_flags":{{"violence":"<None|Mild|Moderate|High>",'
         f'"adult_content":"<None|Mild|Moderate|High>",'
         f'"religion_sensitivity":"<None|Low|Moderate|High>",'
         f'"drug_glorification":"<None|Mild|Moderate|High>"}},'
-        f'"audience_note":"<One sentence about who in {target_region} would enjoy this>.",'
+        f'"audience_note":"<One sentence describing which demographic in {target_region} would most enjoy this and why.>",'
         f'"similar_movies":['
         f'{{"title":"A","reason":"reason"}},'
         f'{{"title":"B","reason":"reason"}},'
@@ -83,21 +89,21 @@ async def get_multi_cultural_scores(
     regions_str = ", ".join(regions)
 
     prompt = (
-        f'You are a cultural media analyst. Score this movie for MULTIPLE countries.\n\n'
+        f'You are a cultural media analyst specializing in cross-cultural content adaptation. Score this movie for MULTIPLE countries.\n\n'
         f'Movie: "{title}" | Language: {lang}\n'
         f'Overview: {overview}\n\n'
         f'Countries to score: {regions_str}\n\n'
-        f'Rules:\n'
+        f'SCORING RULES:\n'
         f'- Score 1-10. Be realistic and varied — DO NOT give everyone the same score.\n'
-        f'- Same language/culture as movie origin = 8-10\n'
+        f'- Same language/culture as movie origin = 8-10 (native understanding)\n'
         f'- Universal genre (action/thriller) + western country = 6-8\n'
-        f'- Language barrier (non-English film in English country) = -2 pts\n'
-        f'- Conservative region (Middle East) + adult/violence content = -3 pts\n'
-        f'- Movie niche or culturally specific = lower scores for distant countries\n'
-        f'- reason must be ONE sentence explaining specifically why that score for that country\n\n'
-        f'Reply ONLY with raw JSON, no markdown:\n'
+        f'- Language barrier (non-English film in English country) = -2 pts from base\n'
+        f'- Conservative region (Middle East, South Asia) + adult/violence content = -3 pts from base\n'
+        f'- Movie niche or culturally specific = lower scores (3-5) for distant countries\n'
+        f'- Reason MUST explain SPECIFICALLY: Why is this score justified for THIS country? Consider cultural themes, values, content sensitivity, language, and target audience.\n\n'
+        f'Reply ONLY with raw JSON (no markdown):\n'
         f'{{"scores":['
-        f'{{"region":"Country","score":7,"label":"Good Fit","reason":"One sentence."}},'
+        f'{{"region":"Country","score":7,"label":"Good Fit","reason":"Explain specifically why for this region considering culture, language, and values."}},'
         f'... one entry per country'
         f']}}'
     )

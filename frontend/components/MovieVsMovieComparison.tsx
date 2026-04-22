@@ -45,18 +45,23 @@ export default function MovieVsMovieComparison({
 }: MovieVsMovieComparisonProps) {
   const { t } = useLanguage();
 
-  const getScoreColor = (score: number | null) => {
+  // Detect if scores are tied (within 0.5 point tolerance)
+  const scoresDifference = Math.abs((movieA.score || 0) - (movieB.score || 0));
+  const isTied = scoresDifference <= 0.5;
+
+  const getScoreColor = (score: number | null, isWinner: boolean = false) => {
     if (!score) return "var(--text-3)";
-    if (score >= 7.5) return "#10b981"; // green - Excellent
-    if (score >= 5) return "#f59e0b"; // amber - Good
-    return "#ef4444"; // red - Poor
+    if (isTied) return "#3b82f6"; // blue - Tied
+    if (isWinner) return "#10b981"; // green - Winner
+    return "#6366f1"; // indigo - Runner-up
   };
 
   const getScoreLabel = (score: number | null) => {
     if (!score) return "N/A";
-    if (score >= 7.5) return "Excellent";
+    if (score >= 8) return "Excellent";
+    if (score >= 6.5) return "Strong";
     if (score >= 5) return "Good";
-    if (score >= 2.5) return "Fair";
+    if (score >= 3) return "Moderate";
     return "Poor";
   };
 
@@ -83,26 +88,33 @@ export default function MovieVsMovieComparison({
         </div>
       )}
 
-      {/* Target Region Header */}
+      {/* Target Region Header with Tie Status */}
       <div
         style={{
           marginBottom: "24px",
-          padding: "16px",
+          padding: "18px 20px",
           background: "var(--bg-card)",
           borderRadius: "12px",
-          border: "1px solid var(--border)",
+          border: isTied ? "2px solid #3b82f6" : "1px solid var(--border)",
           textAlign: "center",
+          boxShadow: isTied ? "0 0 20px rgba(59, 130, 246, 0.15)" : "none",
         }}
       >
         <p
           style={{
-            fontSize: "14px",
-            color: "var(--text-2)",
+            fontSize: "16px",
+            fontWeight: 700,
+            color: "var(--text)",
             marginBottom: "6px",
           }}
         >
           {t("cultural_fit_for")} <strong>{targetRegion}</strong>
         </p>
+        {isTied && (
+          <p style={{ fontSize: "13px", color: "#3b82f6", fontWeight: 600, margin: 0 }}>
+            🤝 Both movies are equally culturally aligned
+          </p>
+        )}
       </div>
 
       {/* Side-by-side comparison */}
@@ -119,38 +131,45 @@ export default function MovieVsMovieComparison({
           style={{
             position: "relative",
             borderRadius: "16px",
-            border: `2px solid ${movieA.winner ? "#10b981" : "var(--border)"}`,
+            border: `2px solid ${
+              isTied ? "#3b82f6" : movieA.winner ? "#10b981" : "#6366f1"
+            }`,
             overflow: "hidden",
             background: "var(--bg-card)",
             transition: "all 0.3s",
-            boxShadow: movieA.winner
+            boxShadow: isTied
+              ? "0 0 20px rgba(59, 130, 246, 0.2)"
+              : movieA.winner
               ? "0 0 20px rgba(16, 185, 129, 0.3)"
-              : "none",
+              : "0 0 15px rgba(99, 102, 241, 0.15)",
           }}
         >
-          {/* Winner Badge */}
-          {movieA.winner && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(16, 185, 129, 0.1)",
-                pointerEvents: "none",
-                zIndex: 1,
-              }}
-            />
-          )}
+          {/* Overlay for visual distinction */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: isTied
+                ? "rgba(59, 130, 246, 0.05)"
+                : movieA.winner
+                ? "rgba(16, 185, 129, 0.08)"
+                : "rgba(99, 102, 241, 0.04)",
+              pointerEvents: "none",
+              zIndex: 1,
+            }}
+          />
 
-          {movieA.winner && (
+          {/* Status Badge */}
+          {(isTied || movieA.winner) && (
             <div
               style={{
                 position: "absolute",
                 top: "12px",
                 right: "12px",
-                background: "#10b981",
+                background: isTied ? "#3b82f6" : movieA.winner ? "#10b981" : "transparent",
                 color: "#fff",
                 padding: "6px 12px",
                 borderRadius: "20px",
@@ -159,7 +178,7 @@ export default function MovieVsMovieComparison({
                 zIndex: 2,
               }}
             >
-              🏆 Winner
+              {isTied ? "🤝 Tied" : "🏆 Better Fit"}
             </div>
           )}
 
@@ -207,18 +226,19 @@ export default function MovieVsMovieComparison({
             {/* Score Badge */}
             <div
               style={{
-                background: getScoreColor(movieA.score),
+                background: getScoreColor(movieA.score, movieA.winner),
                 color: "#fff",
-                padding: "10px 14px",
+                padding: "12px 16px",
                 borderRadius: "10px",
                 textAlign: "center",
                 marginBottom: "12px",
+                boxShadow: `0 4px 12px ${getScoreColor(movieA.score, movieA.winner)}40`,
               }}
             >
-              <div style={{ fontSize: "24px", fontWeight: 800 }}>
+              <div style={{ fontSize: "32px", fontWeight: 900, lineHeight: 1 }}>
                 {movieA.score?.toFixed(1) || "N/A"}
               </div>
-              <div style={{ fontSize: "11px", fontWeight: 600 }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, marginTop: "4px" }}>
                 {getScoreLabel(movieA.score)}
               </div>
             </div>
@@ -240,54 +260,95 @@ export default function MovieVsMovieComparison({
               {movieA.label}
             </div>
 
-            {/* Reason */}
-            <p
-              style={{
-                fontSize: "12px",
-                color: "var(--text-2)",
-                marginBottom: "10px",
-                lineHeight: 1.4,
-              }}
-            >
-              {movieA.reason}
-            </p>
-
-            {/* Content Flags - More Compact */}
+            {/* Reason - Enhanced Typography */}
             <div
               style={{
                 background: "var(--bg-deep)",
+                border: "1px solid var(--border)",
                 borderRadius: "8px",
-                padding: "10px",
-                marginBottom: "10px",
-                fontSize: "11px",
+                padding: "12px",
+                marginBottom: "12px",
               }}
             >
               <p
                 style={{
-                  fontWeight: 600,
-                  color: "var(--accent)",
-                  marginBottom: "6px",
+                  fontSize: "14px",
+                  color: "var(--text)",
+                  fontWeight: 500,
+                  lineHeight: 1.6,
+                  margin: 0,
+                  letterSpacing: "0.3px",
                 }}
               >
-                Content Flags:
+                {movieA.reason}
               </p>
-              <ul style={{ margin: 0, paddingLeft: "14px", color: "var(--text-3)" }}>
-                <li>Violence: {movieA.content_flags.violence}</li>
-                <li>Adult: {movieA.content_flags.adult_content}</li>
-                <li>Religion: {movieA.content_flags.religion_sensitivity}</li>
-                <li>Drugs: {movieA.content_flags.drug_glorification}</li>
-              </ul>
             </div>
 
-            {/* Audience Note */}
-            <p
+            {/* Content Flags - Enhanced Display */}
+            <div
               style={{
-                fontSize: "11px",
-                color: "var(--text-3)",
-                fontStyle: "italic",
+                background: "var(--bg-deep)",
+                borderRadius: "8px",
+                padding: "12px",
+                marginBottom: "12px",
+                fontSize: "14px",
               }}
             >
-              "{movieA.audience_note}"
+              <p
+                style={{
+                  fontWeight: 700,
+                  color: "var(--accent)",
+                  marginBottom: "10px",
+                  fontSize: "13px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                ⚠️ Content Details
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Violence</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieA.content_flags.violence}
+                  </span>
+                </div>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Adult</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieA.content_flags.adult_content}
+                  </span>
+                </div>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Religion</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieA.content_flags.religion_sensitivity}
+                  </span>
+                </div>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Drugs</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieA.content_flags.drug_glorification}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Audience Note - Enhanced */}
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--text-2)",
+                fontStyle: "italic",
+                padding: "12px",
+                background: "var(--bg-deep)",
+                borderLeft: "3px solid var(--accent)",
+                borderRadius: "4px",
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              💭 {movieA.audience_note}
             </p>
           </div>
         </div>
@@ -306,29 +367,32 @@ export default function MovieVsMovieComparison({
               : "none",
           }}
         >
-          {/* Winner Overlay */}
-          {movieB.winner && (
-            <div
-              style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                background: "rgba(16, 185, 129, 0.1)",
-                pointerEvents: "none",
-                zIndex: 1,
-              }}
-            />
-          )}
+          {/* Overlay for visual distinction */}
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: isTied
+                ? "rgba(59, 130, 246, 0.05)"
+                : movieB.winner
+                ? "rgba(16, 185, 129, 0.08)"
+                : "rgba(99, 102, 241, 0.04)",
+              pointerEvents: "none",
+              zIndex: 1,
+            }}
+          />
 
-          {movieB.winner && (
+          {/* Status Badge */}
+          {(isTied || movieB.winner) && (
             <div
               style={{
                 position: "absolute",
                 top: "12px",
                 right: "12px",
-                background: "#10b981",
+                background: isTied ? "#3b82f6" : movieB.winner ? "#10b981" : "transparent",
                 color: "#fff",
                 padding: "6px 12px",
                 borderRadius: "20px",
@@ -337,7 +401,7 @@ export default function MovieVsMovieComparison({
                 zIndex: 2,
               }}
             >
-              🏆 Winner
+              {isTied ? "🤝 Tied" : "🏆 Better Fit"}
             </div>
           )}
 
@@ -385,18 +449,19 @@ export default function MovieVsMovieComparison({
             {/* Score Badge */}
             <div
               style={{
-                background: getScoreColor(movieB.score),
+                background: getScoreColor(movieB.score, movieB.winner),
                 color: "#fff",
-                padding: "10px 14px",
+                padding: "12px 16px",
                 borderRadius: "10px",
                 textAlign: "center",
                 marginBottom: "12px",
+                boxShadow: `0 4px 12px ${getScoreColor(movieB.score, movieB.winner)}40`,
               }}
             >
-              <div style={{ fontSize: "24px", fontWeight: 800 }}>
+              <div style={{ fontSize: "32px", fontWeight: 900, lineHeight: 1 }}>
                 {movieB.score?.toFixed(1) || "N/A"}
               </div>
-              <div style={{ fontSize: "11px", fontWeight: 600 }}>
+              <div style={{ fontSize: "12px", fontWeight: 700, marginTop: "4px" }}>
                 {getScoreLabel(movieB.score)}
               </div>
             </div>
@@ -418,54 +483,95 @@ export default function MovieVsMovieComparison({
               {movieB.label}
             </div>
 
-            {/* Reason */}
-            <p
-              style={{
-                fontSize: "12px",
-                color: "var(--text-2)",
-                marginBottom: "10px",
-                lineHeight: 1.4,
-              }}
-            >
-              {movieB.reason}
-            </p>
-
-            {/* Content Flags - More Compact */}
+            {/* Reason - Enhanced Typography */}
             <div
               style={{
                 background: "var(--bg-deep)",
+                border: "1px solid var(--border)",
                 borderRadius: "8px",
-                padding: "10px",
-                marginBottom: "10px",
-                fontSize: "11px",
+                padding: "12px",
+                marginBottom: "12px",
               }}
             >
               <p
                 style={{
-                  fontWeight: 600,
-                  color: "var(--accent)",
-                  marginBottom: "6px",
+                  fontSize: "14px",
+                  color: "var(--text)",
+                  fontWeight: 500,
+                  lineHeight: 1.6,
+                  margin: 0,
+                  letterSpacing: "0.3px",
                 }}
               >
-                Content Flags:
+                {movieB.reason}
               </p>
-              <ul style={{ margin: 0, paddingLeft: "14px", color: "var(--text-3)" }}>
-                <li>Violence: {movieB.content_flags.violence}</li>
-                <li>Adult: {movieB.content_flags.adult_content}</li>
-                <li>Religion: {movieB.content_flags.religion_sensitivity}</li>
-                <li>Drugs: {movieB.content_flags.drug_glorification}</li>
-              </ul>
             </div>
 
-            {/* Audience Note */}
-            <p
+            {/* Content Flags - Enhanced Display */}
+            <div
               style={{
-                fontSize: "11px",
-                color: "var(--text-3)",
-                fontStyle: "italic",
+                background: "var(--bg-deep)",
+                borderRadius: "8px",
+                padding: "12px",
+                marginBottom: "12px",
+                fontSize: "14px",
               }}
             >
-              "{movieB.audience_note}"
+              <p
+                style={{
+                  fontWeight: 700,
+                  color: "var(--accent)",
+                  marginBottom: "10px",
+                  fontSize: "13px",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
+              >
+                ⚠️ Content Details
+              </p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Violence</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieB.content_flags.violence}
+                  </span>
+                </div>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Adult</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieB.content_flags.adult_content}
+                  </span>
+                </div>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Religion</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieB.content_flags.religion_sensitivity}
+                  </span>
+                </div>
+                <div style={{ padding: "6px 0" }}>
+                  <span style={{ fontWeight: 600, color: "var(--text-2)", display: "block", fontSize: "12px", marginBottom: "2px" }}>Drugs</span>
+                  <span style={{ color: "var(--text)", fontWeight: 500, fontSize: "13px" }}>
+                    {movieB.content_flags.drug_glorification}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Audience Note - Enhanced */}
+            <p
+              style={{
+                fontSize: "14px",
+                color: "var(--text-2)",
+                fontStyle: "italic",
+                padding: "12px",
+                background: "var(--bg-deep)",
+                borderLeft: "3px solid var(--accent)",
+                borderRadius: "4px",
+                margin: 0,
+                lineHeight: 1.5,
+              }}
+            >
+              💭 {movieB.audience_note}
             </p>
           </div>
         </div>
@@ -474,31 +580,59 @@ export default function MovieVsMovieComparison({
       {/* Final Verdict */}
       <div
         style={{
-          background: "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)",
-          border: "1px solid rgba(16, 185, 129, 0.3)",
+          background: isTied
+            ? "linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.05) 100%)"
+            : "linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0.05) 100%)",
+          border: isTied
+            ? "1px solid rgba(59, 130, 246, 0.3)"
+            : "1px solid rgba(16, 185, 129, 0.3)",
           borderRadius: "12px",
-          padding: "20px",
+          padding: "24px",
           textAlign: "center",
         }}
       >
-        <p style={{ color: "var(--text-2)", fontSize: "14px", marginBottom: "8px" }}>
-          Final Verdict for {targetRegion}
+        <p style={{ color: "var(--text-2)", fontSize: "14px", marginBottom: "12px" }}>
+          Final Verdict for <strong>{targetRegion}</strong>
         </p>
-        <h2
-          style={{
-            color: "#10b981",
-            fontSize: "24px",
-            fontWeight: 800,
-            marginBottom: "8px",
-          }}
-        >
-          🏆 {movieA.winner ? movieA.movie.title : movieB.movie.title} Wins!
-        </h2>
-        <p style={{ color: "var(--text-3)", fontSize: "13px" }}>
-          {movieA.winner
-            ? `${movieA.movie.title} is more culturally aligned for ${targetRegion} audiences`
-            : `${movieB.movie.title} is more culturally aligned for ${targetRegion} audiences`}
-        </p>
+        {isTied ? (
+          <>
+            <h2
+              style={{
+                color: "#3b82f6",
+                fontSize: "28px",
+                fontWeight: 800,
+                marginBottom: "12px",
+              }}
+            >
+              🤝 Perfect Tie!
+            </h2>
+            <p style={{ color: "var(--text)", fontSize: "15px", lineHeight: 1.6 }}>
+              Both <strong>{movieA.movie.title}</strong> and <strong>{movieB.movie.title}</strong> are equally well-suited for {targetRegion} audiences.
+              <br/>
+              Choose based on your mood — either will provide excellent cultural alignment!
+            </p>
+          </>
+        ) : (
+          <>
+            <h2
+              style={{
+                color: "#10b981",
+                fontSize: "28px",
+                fontWeight: 800,
+                marginBottom: "12px",
+              }}
+            >
+              🏆 {movieA.winner ? movieA.movie.title : movieB.movie.title}
+            </h2>
+            <p style={{ color: "var(--text)", fontSize: "15px", lineHeight: 1.6 }}>
+              <strong>{movieA.winner ? movieA.movie.title : movieB.movie.title}</strong> is more culturally aligned for {targetRegion} audiences.
+              <br/>
+              <span style={{ fontSize: "14px", color: "var(--text-2)" }}>
+                (Score: {(movieA.winner ? movieA.score : movieB.score)?.toFixed(1)} vs {(movieA.winner ? movieB.score : movieA.score)?.toFixed(1)})
+              </span>
+            </p>
+          </>
+        )}
       </div>
     </div>
   );

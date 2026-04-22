@@ -19,11 +19,11 @@ export default function ContentFlags({ flags }: { flags: FT }) {
   return (
     <div style={{ background: "#141824", border: "1px solid #252d45",
                   borderRadius: "16px", padding: "20px" }}>
-      <p style={{ fontSize: "10px", fontWeight: 700, color: "#8896b3",
-                  textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "14px" }}>
-        Content Flags
+      <p style={{ fontSize: "11px", fontWeight: 700, color: "#8896b3",
+                  textTransform: "uppercase", letterSpacing: "0.1em", marginBottom: "16px" }}>
+        ⚠️ Content Flags & Sensitivity
       </p>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "10px" }}>
         {FLAGS.map(({ key, label }) => {
           const level = flags[key] as string || "None";
           const style = STYLES[level] ?? STYLES["None"];
@@ -32,12 +32,14 @@ export default function ContentFlags({ flags }: { flags: FT }) {
               background:   style.bg,
               color:        style.color,
               border:       `1px solid ${style.border}`,
-              borderRadius: "99px",
-              padding:      "4px 12px",
-              fontSize:     "12px",
+              borderRadius: "6px",
+              padding:      "8px 14px",
+              fontSize:     "13px",
               fontWeight:   600,
+              lineHeight:   1.4,
+              whiteSpace:   "nowrap",
             }}>
-              {label}: {level}
+              {label}: <strong>{level}</strong>
             </span>
           );
         })}

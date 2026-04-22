@@ -114,31 +114,56 @@ async def _groq_generate(prompt: str) -> str | None:
     """
     if not settings.GROQ_API_KEY:
         return None
-    try:
-        client   = AsyncGroq(api_key=settings.GROQ_API_KEY)
-        response = await client.chat.completions.create(
-            model=settings.GROQ_MODEL,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a cultural media analyst and film database expert. "
-                        "Always reply with raw JSON only — no markdown, no explanation, "
-                        "no code fences. Your JSON must be valid and parseable."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": prompt,
-                },
-            ],
-            temperature=0.4,      # slight creativity but mostly consistent
-            max_tokens=1024,
-        )
-        return response.choices[0].message.content
-    except Exception as e:
-        print(f"[Groq error] {e}")
-        return None
+    
+    # List of models to try, in order of preference
+    models_to_try = [
+        settings.GROQ_MODEL,               # Primary model from config
+        "llama-3.3-70b-versatile",         # Recommended replacement for decommissioned llama3-70b-8192
+        "llama-3.1-8b-instant",            # Faster fallback
+        "mixtral-8x7b-32768",              # Alternative option
+    ]
+    
+    for model in models_to_try:
+        try:
+            client   = AsyncGroq(api_key=settings.GROQ_API_KEY)
+            response = await client.chat.completions.create(
+                model=model,
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "You are a cultural media analyst and film database expert. "
+                            "Always reply with raw JSON only — no markdown, no explanation, "
+                            "no code fences. Your JSON must be valid and parseable."
+                        ),
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    },
+                ],
+                temperature=0.4,      # slight creativity but mostly consistent
+                max_tokens=1024,
+            )
+            print(f"✅ [Groq] Successfully used model: {model}")
+            return response.choices[0].message.content
+        except Exception as e:
+            error_str = str(e)
+            print(f"⚠️  [Groq] Model '{model}' failed: {error_str}")
+            
+            # If it's a decommissioned model error, skip to next one
+            if "decommissioned" in error_str.lower():
+                continue
+            # If it's an API key error, don't retry
+            elif "api_key" in error_str.lower() or "authentication" in error_str.lower():
+                print(f"❌ [Groq] Authentication failed: {error_str}")
+                return None
+            # For other errors, try the next model
+            else:
+                continue
+    
+    print("❌ [Groq] All models failed")
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────

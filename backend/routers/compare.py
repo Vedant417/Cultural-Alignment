@@ -6,6 +6,7 @@ from modules.tmdb import fetch_movie
 from modules.hybrid_fetcher import hybrid_fetch_movie
 from modules.region import detect_region
 from modules.scorer import get_cultural_score
+from modules.ollama_client import ollama_generate, extract_json_robust
 from datetime import datetime
 import asyncio
 
@@ -151,10 +152,40 @@ async def compare_two_movies(req: TwoMovieRequest):
     if not score_b:
         raise HTTPException(status_code=500, detail=f"Scoring failed for '{movie_b['title']}'. Is Ollama/Groq running?")
 
-    # ── Determine winner ──
-    score_a_val = score_a.get("score") or 0
-    score_b_val = score_b.get("score") or 0
-    a_wins = score_a_val >= score_b_val
+    # ── Run AI comparison to determine winner (always runs AI once) ──
+    print(f"[Comparison] Running AI to determine winner between '{movie_a['title']}' and '{movie_b['title']}'")
+    comparison_prompt = f"""
+    You are a cultural media analyst. Compare these TWO movies for the region: {req.target_region}
+    
+    Movie A: {movie_a['title']} ({movie_a.get('release_date', 'Unknown')})
+    - Origin: {origin_a.get('region', 'Unknown')}
+    - Cultural Fit Score: {score_a.get('score', 'N/A')}/10
+    - Analysis: {score_a.get('reason', 'No analysis available')}
+    
+    Movie B: {movie_b['title']} ({movie_b.get('release_date', 'Unknown')})
+    - Origin: {origin_b.get('region', 'Unknown')}
+    - Cultural Fit Score: {score_b.get('score', 'N/A')}/10
+    - Analysis: {score_b.get('reason', 'No analysis available')}
+    
+    Which movie is MORE culturally aligned for {req.target_region} audiences? Reply with ONLY:
+    {{"winner": "A" or "B", "confidence": 0-10, "reason": "brief explanation"}}
+    """
+    
+    ai_comparison_result = await ollama_generate(comparison_prompt, timeout=15)
+    a_wins = True  # default
+    
+    if ai_comparison_result:
+        try:
+            import json
+            comparison_data = extract_json_robust(ai_comparison_result)
+            if comparison_data and comparison_data.get("winner") == "B":
+                a_wins = False
+            print(f"[Comparison] AI Decision: {'A' if a_wins else 'B'} wins")
+        except:
+            print("[Comparison] Using score-based decision")
+            score_a_val = score_a.get("score") or 0
+            score_b_val = score_b.get("score") or 0
+            a_wins = score_a_val >= score_b_val
 
     # ── Save both to MongoDB (non-blocking) ──
     asyncio.create_task(_save_to_db(movie_a, origin_a, req.target_region, score_a))
@@ -165,3 +196,61 @@ async def compare_two_movies(req: TwoMovieRequest):
         "movie_a": _build_compare_entry(movie_a, origin_a, score_a, winner=a_wins),
         "movie_b": _build_compare_entry(movie_b, origin_b, score_b, winner=not a_wins),
     }
+
+
+# ── POST /api/compare/check-cached ────────────────────────────────
+@router.post("/check-cached")
+async def check_two_movies_cached(req: TwoMovieRequest):
+    """
+    Check if a two-movie comparison is already cached in MongoDB.
+    Returns cached data if found, otherwise returns 404.
+    """
+    db = get_db()
+    
+    try:
+        # Try to find both analyses in DB for this region
+        movie_a_doc = await db.alignments.find_one({
+            "movie.title": {"$regex": f"^{req.movie_input_a}$", "$options": "i"},
+            "target_region": req.target_region,
+        })
+        
+        movie_b_doc = await db.alignments.find_one({
+            "movie.title": {"$regex": f"^{req.movie_input_b}$", "$options": "i"},
+            "target_region": req.target_region,
+        })
+        
+        if not movie_a_doc or not movie_b_doc:
+            raise HTTPException(status_code=404, detail="Comparison not cached")
+        
+        # Build response with winner logic
+        score_a = movie_a_doc["result"]["score"] or 0
+        score_b = movie_b_doc["result"]["score"] or 0
+        a_wins = score_a >= score_b
+        
+        return {
+            "target_region": req.target_region,
+            "movie_a": {
+                "movie": movie_a_doc["movie"],
+                "origin_region": movie_a_doc["origin_region"],
+                "score": score_a,
+                "label": movie_a_doc["result"].get("label", ""),
+                "reason": movie_a_doc["result"].get("reason", ""),
+                "audience_note": movie_a_doc["result"].get("audience_note", ""),
+                "content_flags": movie_a_doc["result"]["content_flags"],
+                "winner": a_wins,
+            },
+            "movie_b": {
+                "movie": movie_b_doc["movie"],
+                "origin_region": movie_b_doc["origin_region"],
+                "score": score_b,
+                "label": movie_b_doc["result"].get("label", ""),
+                "reason": movie_b_doc["result"].get("reason", ""),
+                "audience_note": movie_b_doc["result"].get("audience_note", ""),
+                "content_flags": movie_b_doc["result"]["content_flags"],
+                "winner": not a_wins,
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception:
+        raise HTTPException(status_code=404, detail="Comparison not cached")

@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslation } from "@/hooks/useTranslation";
-import { compareMovieAcrossRegions, compareTwoMovies } from "@/lib/api";
+import { compareMovieAcrossRegions, compareTwoMovies, checkTwoMoviesCached } from "@/lib/api";
 import { CompareResponse } from "@/types";
 import type { SupportedLang } from "@/lib/translate";
 import { COUNTRIES } from "@/components/CountrySelector";
 import ComparisonCards from "@/components/ComparisonCards";
+import MovieVsMovieComparison from "@/components/MovieVsMovieComparison";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 // (optional type placeholder if not defined yet)
@@ -56,6 +57,7 @@ export default function ComparePage() {
   const [movieB, setMovieB] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("India");
   const [twoMovieResult, setTwoMovieResult] = useState<any | null>(null);
+  const [twoMovieCached, setTwoMovieCached] = useState(false);
 
   const [selected, setSelected] = useState<string[]>([
     "United States",
@@ -160,8 +162,12 @@ export default function ComparePage() {
       setLoading(true);
       setError(null);
       setTwoMovieResult(null);
+      setTwoMovieCached(false);
 
       try {
+        // Always call fresh comparison - backend will use cached individual movies
+        // but run AI once to make the comparison decision
+        console.log("📡 Fetching comparison (AI will decide winner)");
         const data = await compareTwoMovies(
           movieInput.trim(),
           movieB.trim(),
@@ -366,10 +372,15 @@ export default function ComparePage() {
         </div>
       )}
 
-      {/* Mode B Placeholder */}
-      {mode === "movies" && twoMovieResult && (
+      {/* Mode B Results - Movie vs Movie */}
+      {mode === "movies" && twoMovieResult && !loading && (
         <div className="fade-up">
-          {/* future Movie vs Movie UI */}
+          <MovieVsMovieComparison
+            movieA={twoMovieResult.movie_a}
+            movieB={twoMovieResult.movie_b}
+            targetRegion={twoMovieResult.target_region}
+            cached={twoMovieCached}
+          />
         </div>
       )}
 

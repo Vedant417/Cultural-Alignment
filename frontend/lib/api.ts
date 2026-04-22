@@ -107,6 +107,37 @@ export async function compareTwoMovies(
   return res.json() as Promise<TwoMovieCompareResponse>;
 }
 
+// ── Check if comparison is cached from MongoDB ─────────────────────
+export async function checkTwoMoviesCached(
+  movieA:       string,
+  movieB:       string,
+  targetRegion: string
+): Promise<{ cached: boolean; data?: TwoMovieCompareResponse }> {
+  try {
+    const cleanA = movieA.trim().replace(/\s+/g, " ");
+    const cleanB = movieB.trim().replace(/\s+/g, " ");
+    
+    const res = await fetch(`${BASE}/api/compare/check-cached`, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        movie_input_a: cleanA,
+        movie_input_b: cleanB,
+        target_region: targetRegion,
+      }),
+    });
+
+    if (!res.ok) {
+      return { cached: false };
+    }
+
+    const data = await res.json();
+    return { cached: true, data };
+  } catch {
+    return { cached: false };
+  }
+}
+
 export async function fetchDeepAnalysis(
   movieTitle:   string,
   targetRegion: string,

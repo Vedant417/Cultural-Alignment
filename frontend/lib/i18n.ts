@@ -149,6 +149,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     cached_analysis:    "Cached Analysis",
     analysis_summary:   "Analysis Summary",
     content_flags_header: "Content Flags",
+    cultural_fit_for:   "Cultural fit for",
   },
 
   hi: {
@@ -282,6 +283,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     cached_analysis:    "कैश्ड विश्लेषण",
     analysis_summary:   "विश्लेषण सारांश",
     content_flags_header: "सामग्री फ्लैग्स",
+    cultural_fit_for:   "के लिए सांस्कृतिक उपयुक्तता",
   },
 
   es: {
@@ -415,6 +417,7 @@ export const translations: Record<Lang, Record<string, string>> = {
     cached_analysis:    "Análisis en Caché",
     analysis_summary:   "Resumen de Análisis",
     content_flags_header: "Indicadores de Contenido",
+    cultural_fit_for:   "Ajuste cultural para",
   },
 
   ja: {
@@ -546,5 +549,6 @@ export const translations: Record<Lang, Record<string, string>> = {
     fresh_analysis:     "新しい分析",
     cached_analysis:    "キャッシュされた分析",
     analysis_summary:   "分析の概要",
-    content_flags_header: "コンテンツフラグ",  },
+    content_flags_header: "コンテンツフラグ",
+    cultural_fit_for:   "の文化的適合",  },
 };

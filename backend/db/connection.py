@@ -1,6 +1,6 @@
+import os
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from pymongo.errors import OperationFailure
-from backend.config import settings
 
 _client: AsyncIOMotorClient | None = None
 _db:     AsyncIOMotorDatabase | None = None
@@ -17,18 +17,20 @@ def _validate_mongo_uri(uri: str) -> None:
 async def connect_db():
     """Called on FastAPI startup. Creates the Motor client and selects the DB."""
     global _client, _db
-    _validate_mongo_uri(settings.MONGODB_URI)
-    _client = AsyncIOMotorClient(settings.MONGODB_URI)
-    _db     = _client[settings.MONGODB_DB]
+    mongodb_uri = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    mongodb_db = os.getenv("MONGODB_DB", "culture_align")
+    _validate_mongo_uri(mongodb_uri)
+    _client = AsyncIOMotorClient(mongodb_uri)
+    _db     = _client[mongodb_db]
 
     try:
         await _client.admin.command("ping")
     except OperationFailure as exc:
         raise RuntimeError(
-            "MongoDB authentication failed. Check backend/.env and verify your Atlas credentials or local MongoDB URI."
+            "MongoDB authentication failed. Check environment variables and verify your Atlas credentials or local MongoDB URI."
         ) from exc
 
-    print(f"✅ MongoDB connected: {settings.MONGODB_DB}")
+    print(f"✅ MongoDB connected: {mongodb_db}")
 
 
 async def close_db():

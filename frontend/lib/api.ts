@@ -57,10 +57,10 @@ export async function compareMovieAcrossRegions(
   movieInput: string,
   regions:    string[]
 ): Promise<CompareResponse> {
-  const res = await fetch(`${BASE}/api/analyze/compare`, {
+  const res = await fetch(`${BASE}/api/analyze/multi-country`, {
     method:  "POST",
     headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify({ movie_input: movieInput, regions }),
+    body:    JSON.stringify({ movie_input: movieInput, target_regions: regions }),
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));

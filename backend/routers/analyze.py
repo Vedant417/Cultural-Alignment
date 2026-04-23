@@ -97,10 +97,21 @@ async def analyze(request: AnalyzeRequest):
     doc = _build_doc(movie_data, origin, request.target_region, score_data, recs, genres)
 
     db = get_db()
-    result = await db.alignments.insert_one(doc.model_dump())
+    # Use upsert instead of insert_one to prevent duplicate entries
+    result = await db.alignments.update_one(
+        {
+            "movie.title": {"$regex": f"^{movie_data['title']}$", "$options": "i"},
+            "target_region": request.target_region
+        },
+        {"$set": doc.model_dump()},
+        upsert=True
+    )
+
+    # Get the document ID (either newly inserted or existing)
+    doc_id = result.upserted_id if result.upserted_id else (await _get_cached(movie_data["title"], request.target_region))["_id"]
 
     return {
-        "id": str(result.inserted_id),
+        "id": str(doc_id),
         "movie": doc.movie.model_dump(),
         "result": doc.result.model_dump(),
         "cached": False,

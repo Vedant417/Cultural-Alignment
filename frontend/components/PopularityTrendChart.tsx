@@ -88,7 +88,6 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
       <div style={{ overflow: "hidden", width: "100%" }}>
         <svg
           width="100%"
-          height="auto"
           viewBox={`0 0 ${SVG_WIDTH} ${SVG_HEIGHT}`}
           preserveAspectRatio="xMidYMid meet"
           style={{ 

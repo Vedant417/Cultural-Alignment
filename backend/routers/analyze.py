@@ -76,8 +76,13 @@ async def analyze(request: AnalyzeRequest):
 
     cached = await _get_cached(movie_data["title"], request.target_region)
     if cached:
-        cached["id"] = str(cached["_id"])
-        return {**cached, "cached": True}
+        # Return only JSON-serializable fields
+        return {
+            "id": str(cached["_id"]),
+            "movie": cached.get("movie"),
+            "result": cached.get("result"),
+            "cached": True
+        }
 
     origin = await detect_region(movie_data)
 

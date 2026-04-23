@@ -32,6 +32,12 @@ app.include_router(translate.router)
 app.include_router(compare.router)
 
 
+@app.get("/")
+async def root():
+    """Quick test endpoint to verify app is responding."""
+    return {"status": "ok", "message": "CultureAlign API is running"}
+
+
 @app.get("/health")
 async def health():
     """
@@ -59,3 +65,29 @@ async def health():
             "ready":    provider != "none",
         }
     }
+
+
+@app.get("/debug/env")
+async def debug_env():
+    """Check environment variables (for debugging only - remove in production)."""
+    import os
+    return {
+        "MONGODB_URI": "SET" if os.getenv("MONGODB_URI") else "NOT SET",
+        "MONGODB_DB": os.getenv("MONGODB_DB", "culture_align"),
+        "TMDB_API_KEY": "SET" if os.getenv("TMDB_API_KEY") else "NOT SET",
+        "GROQ_API_KEY": "SET" if os.getenv("GROQ_API_KEY") else "NOT SET",
+        "OLLAMA_BASE_URL": os.getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
+        "LLM_PROVIDER": os.getenv("LLM_PROVIDER", "auto"),
+    }
+
+
+@app.get("/debug/db")
+async def debug_db():
+    """Check database connection."""
+    try:
+        db = get_db()
+        # Try a simple ping operation
+        await db.command("ping")
+        return {"status": "connected", "message": "MongoDB is responding"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

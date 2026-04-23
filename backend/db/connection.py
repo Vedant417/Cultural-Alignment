@@ -20,7 +20,7 @@ async def connect_db():
     
     # DEBUG: Check if env variable is loaded
     mongodb_uri = os.getenv("MONGODB_URI")
-    print(f"🔍 DEBUG: MONGODB_URI = {mongodb_uri}")
+    print(f"🔍 DEBUG: MONGODB_URI = {mongodb_uri[:50]}..." if mongodb_uri else "🔍 DEBUG: MONGODB_URI = NOT SET")
     
     if not mongodb_uri:
         raise RuntimeError(
@@ -32,17 +32,20 @@ async def connect_db():
     print(f"🔍 DEBUG: MONGODB_DB = {mongodb_db}")
     
     _validate_mongo_uri(mongodb_uri)
-    _client = AsyncIOMotorClient(mongodb_uri)
-    _db     = _client[mongodb_db]
-
+    
     try:
+        _client = AsyncIOMotorClient(mongodb_uri, serverSelectionTimeoutMS=5000)
+        _db     = _client[mongodb_db]
         await _client.admin.command("ping")
+        print(f"✅ MongoDB connected: {mongodb_db}")
     except OperationFailure as exc:
         raise RuntimeError(
             "MongoDB authentication failed. Check environment variables and verify your Atlas credentials or local MongoDB URI."
         ) from exc
-
-    print(f"✅ MongoDB connected: {mongodb_db}")
+    except Exception as exc:
+        raise RuntimeError(
+            f"Failed to connect to MongoDB: {str(exc)}"
+        ) from exc
 
 
 async def close_db():

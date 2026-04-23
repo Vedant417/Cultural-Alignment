@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from typing import Literal
+import os
 
 
 class Settings(BaseSettings):
@@ -20,3 +21,16 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+# Validate critical settings in production
+if os.getenv("ENVIRONMENT") == "production":
+    if not settings.MONGODB_URI or settings.MONGODB_URI == "mongodb://localhost:27017":
+        raise RuntimeError(
+            "❌ PRODUCTION ERROR: MONGODB_URI must be set to a remote database. "
+            "Set MONGODB_URI environment variable in Railway."
+        )
+    if not settings.TMDB_API_KEY or settings.TMDB_API_KEY == "a3d117500dc275ba72d9e9268a7c579d":
+        raise RuntimeError(
+            "❌ PRODUCTION ERROR: TMDB_API_KEY must be set. "
+            "Set TMDB_API_KEY environment variable in Railway."
+        )

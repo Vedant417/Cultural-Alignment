@@ -17,6 +17,7 @@ from backend.modules.hybrid_fetcher import hybrid_fetch_movie
 from backend.modules.region import detect_region
 from backend.modules.scorer import get_cultural_score, get_multi_cultural_scores
 from backend.modules.llm import call_llm, safe_parse_json
+import asyncio
 
 router = APIRouter(prefix="/api", tags=["analyze"])
 
@@ -98,6 +99,226 @@ async def analyze(request: AnalyzeRequest):
         "movie": doc.movie.model_dump(),
         "result": doc.result.model_dump(),
         "cached": False,
+    }
+
+
+# ================================
+# COMPARE (FORWARD TO COMPARE ROUTER)
+# ================================
+class CompareRequestAnalyze(BaseModel):
+    movie_input_a: str
+    movie_input_b: str
+    target_region: str
+
+
+@router.post("/analyze/compare")
+async def compare_two_movies_analyze(req: CompareRequestAnalyze):
+    """
+    Compare two movies for cultural alignment in a target region.
+    Fetches both movies in parallel, scores them in parallel.
+    Returns side-by-side result with winner flag.
+    """
+    # ── Validate inputs ──
+    if not req.movie_input_a.strip():
+        raise HTTPException(status_code=400, detail="Movie A is required.")
+    if not req.movie_input_b.strip():
+        raise HTTPException(status_code=400, detail="Movie B is required.")
+    if not req.target_region.strip():
+        raise HTTPException(status_code=400, detail="Target region is required.")
+
+    # ── Fetch both movies in parallel (hybrid) ──
+    movie_a, movie_b = await asyncio.gather(
+        hybrid_fetch_movie(req.movie_input_a.strip()),
+        hybrid_fetch_movie(req.movie_input_b.strip()),
+    )
+
+    if not movie_a:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Movie A not found: '{req.movie_input_a}'. Check the title or link."
+        )
+    if not movie_b:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Movie B not found: '{req.movie_input_b}'. Check the title or link."
+        )
+
+    # ── Check if both movies are the same ──
+    movie_a_title_normalized = movie_a.get("title", "").lower().strip()
+    movie_b_title_normalized = movie_b.get("title", "").lower().strip()
+    
+    if movie_a_title_normalized == movie_b_title_normalized:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You selected the same movie twice: '{movie_a.get('title')}'. Please select two different movies to compare."
+        )
+
+    # ── Detect origins + score both in parallel (with error handling) ──
+    try:
+        origin_a, origin_b, score_a, score_b = await asyncio.gather(
+            detect_region(movie_a),
+            detect_region(movie_b),
+            get_cultural_score(movie_a, target_region=req.target_region),
+            get_cultural_score(movie_b, target_region=req.target_region),
+            return_exceptions=True,
+        )
+
+        # Check for exceptions in results
+        if isinstance(origin_a, Exception):
+            raise origin_a
+        if isinstance(origin_b, Exception):
+            raise origin_b
+        if isinstance(score_a, Exception):
+            raise score_a
+        if isinstance(score_b, Exception):
+            raise score_b
+
+    except asyncio.CancelledError:
+        raise HTTPException(
+            status_code=500,
+            detail="Request timeout during scoring. LLM is taking too long. Try again in a moment."
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scoring error: {str(e)}. Is Ollama/Groq running and reachable?"
+        )
+
+    if not score_a:
+        raise HTTPException(status_code=500, detail=f"Scoring failed for '{movie_a['title']}'. Is Ollama/Groq running?")
+    if not score_b:
+        raise HTTPException(status_code=500, detail=f"Scoring failed for '{movie_b['title']}'. Is Ollama/Groq running?")
+
+    # ── Run AI comparison to determine winner ──
+    score_a_val = score_a.get("score") or 0
+    score_b_val = score_b.get("score") or 0
+    score_difference = abs(score_a_val - score_b_val)
+    is_tied = score_difference <= 0.5  # Within 0.5 point = tied
+    
+    print(f"[Comparison] Score A: {score_a_val}, Score B: {score_b_val}, Difference: {score_difference}")
+    
+    if is_tied:
+        print(f"[Comparison] Scores are TIED - both movies equally culturally aligned")
+        a_wins = True  # Mark both as "tied" will be handled on frontend
+    else:
+        print(f"[Comparison] Running AI to determine winner between '{movie_a['title']}' and '{movie_b['title']}'")
+        comparison_prompt = f"""
+        You are a cultural media analyst. Compare these TWO movies for the region: {req.target_region}
+        
+        Movie A: {movie_a['title']} ({movie_a.get('release_date', 'Unknown')})
+        - Origin: {origin_a.get('region', 'Unknown')}
+        - Cultural Fit Score: {score_a_val}/10
+        - Analysis: {score_a.get('reason', 'No analysis available')}
+        - Themes & Content: {score_a.get('label', 'Unknown')}
+        
+        Movie B: {movie_b['title']} ({movie_b.get('release_date', 'Unknown')})
+        - Origin: {origin_b.get('region', 'Unknown')}
+        - Cultural Fit Score: {score_b_val}/10
+        - Analysis: {score_b.get('reason', 'No analysis available')}
+        - Themes & Content: {score_b.get('label', 'Unknown')}
+        
+        TASK: Which movie is MORE culturally aligned for {req.target_region} audiences?
+        
+        FACTORS TO CONSIDER:
+        - Cultural themes and values alignment with {req.target_region}
+        - Language and accessibility
+        - Content sensitivity (violence, adult themes, religion, drugs)
+        - Audience demographics and preferences in {req.target_region}
+        - Universal appeal vs cultural specificity
+        
+        Reply with ONLY raw JSON (no markdown):
+        {{"winner": "A" or "B", "confidence": 1-10, "reason": "Why this movie is better for {req.target_region}. Explain specifically what makes it more culturally aligned."}}
+        """
+        
+        ai_comparison_result = await call_llm(comparison_prompt, timeout=20)
+        a_wins = True  # default
+        
+        if ai_comparison_result:
+            try:
+                comparison_data = safe_parse_json(ai_comparison_result)
+                if comparison_data and comparison_data.get("winner") == "B":
+                    a_wins = False
+                print(f"[Comparison] AI Decision: {'A' if a_wins else 'B'} wins with confidence {comparison_data.get('confidence', 'N/A')}")
+            except:
+                print("[Comparison] Using score-based decision")
+                a_wins = score_a_val >= score_b_val
+        else:
+            a_wins = score_a_val >= score_b_val
+
+    # ── Save both to MongoDB (non-blocking) ──
+    db = get_db()
+    
+    async def _save_compare(movie_data: dict, origin: dict, region: str, score_data: dict):
+        try:
+            flags_raw = score_data.get("content_flags", {})
+            doc = AlignmentDocument(
+                searched_at=datetime.utcnow(),
+                movie=MovieInfo(**movie_data),
+                origin_region=RegionInfo(
+                    region=origin.get("region", "Unknown"),
+                    state=origin.get("state", ""),
+                    lat=float(origin.get("lat", 0.0)),
+                    lon=float(origin.get("lon", 0.0)),
+                ),
+                target_region=region,
+                result=AnalysisResult(
+                    score=score_data.get("score"),
+                    label=score_data.get("label", ""),
+                    reason=score_data.get("reason", ""),
+                    content_flags=ContentFlags(
+                        violence=flags_raw.get("violence", "None"),
+                        adult_content=flags_raw.get("adult_content", "None"),
+                        religion_sensitivity=flags_raw.get("religion_sensitivity", "None"),
+                        drug_glorification=flags_raw.get("drug_glorification", "None"),
+                    ),
+                    audience_note=score_data.get("audience_note", ""),
+                    similar_movies=[
+                        SimilarMovie(**sm) for sm in score_data.get("similar_movies", [])[:3]
+                        if isinstance(sm, dict) and "title" in sm and "reason" in sm
+                    ],
+                ),
+            )
+            await db.alignments.update_one(
+                {
+                    "movie.title": {"$regex": f"^{movie_data['title']}$", "$options": "i"},
+                    "target_region": region
+                },
+                {"$set": doc.model_dump()},
+                upsert=True
+            )
+        except Exception as e:
+            print(f"[Save Compare] Error: {e}")
+    
+    asyncio.create_task(_save_compare(movie_a, origin_a, req.target_region, score_a))
+    asyncio.create_task(_save_compare(movie_b, origin_b, req.target_region, score_b))
+
+    def _build_compare_entry(movie_data: dict, origin: dict, score_data: dict, winner: bool) -> dict:
+        flags_raw = score_data.get("content_flags", {})
+        return {
+            "movie": MovieInfo(**movie_data).model_dump(),
+            "origin_region": RegionInfo(
+                region=origin.get("region", "Unknown"),
+                state=origin.get("state", ""),
+                lat=float(origin.get("lat", 0.0)),
+                lon=float(origin.get("lon", 0.0)),
+            ).model_dump(),
+            "score":         score_data.get("score"),
+            "label":         score_data.get("label", ""),
+            "reason":        score_data.get("reason", ""),
+            "audience_note": score_data.get("audience_note", ""),
+            "content_flags": {
+                "violence":             flags_raw.get("violence", "None"),
+                "adult_content":        flags_raw.get("adult_content", "None"),
+                "religion_sensitivity": flags_raw.get("religion_sensitivity", "None"),
+                "drug_glorification":   flags_raw.get("drug_glorification", "None"),
+            },
+            "winner": winner,
+        }
+
+    return {
+        "target_region": req.target_region,
+        "movie_a": _build_compare_entry(movie_a, origin_a, score_a, winner=a_wins),
+        "movie_b": _build_compare_entry(movie_b, origin_b, score_b, winner=not a_wins),
     }
 
 
@@ -269,14 +490,15 @@ async def deep_analysis(req: DeepAnalysisRequest):
     })
 
     if cached:
-        deep_data = cached.get("deep_analysis", {})
-        return {
-            "movie_title": req.movie_title,
-            "target_region": req.target_region,
-            "score": req.score,
-            "label": req.label,
-            "sections": deep_data.get("sections", {})
-        }
+        deep_data = cached.get("deep_analysis")
+        if deep_data and isinstance(deep_data, dict):
+            return {
+                "movie_title": req.movie_title,
+                "target_region": req.target_region,
+                "score": req.score,
+                "label": req.label,
+                "sections": deep_data.get("sections", {})
+            }
 
     # Generate deep analysis
     prompt = f"""
@@ -299,7 +521,8 @@ Reply with ONLY raw JSON (no markdown):
     raw = await call_llm(prompt)
     parsed = safe_parse_json(raw)
     
-    if not parsed or "sections" not in parsed:
+    if not parsed or not isinstance(parsed, dict) or "sections" not in parsed:
+        # Return default sections on parse error
         return {
             "movie_title": req.movie_title,
             "target_region": req.target_region,
@@ -315,6 +538,14 @@ Reply with ONLY raw JSON (no markdown):
         }
 
     sections = parsed.get("sections", {})
+    if not isinstance(sections, dict):
+        sections = {
+            "language_dialogue": "Unable to generate analysis",
+            "religion_values": "Unable to generate analysis",
+            "censorship_risk": "Unable to generate analysis",
+            "audience_breakdown": "Unable to generate analysis",
+            "historical_context": "Unable to generate analysis"
+        }
     
     # Save to database
     try:

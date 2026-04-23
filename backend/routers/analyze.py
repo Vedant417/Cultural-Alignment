@@ -547,6 +547,34 @@ Reply with ONLY raw JSON (no markdown):
             "historical_context": "Unable to generate analysis"
         }
     
+    # Validate and normalize sections - ensure only string values with expected keys
+    expected_keys = ["language_dialogue", "religion_values", "censorship_risk", "audience_breakdown", "historical_context"]
+    normalized_sections = {}
+    
+    for expected_key in expected_keys:
+        # Try to get value for this key
+        value = sections.get(expected_key, "")
+        
+        # Convert to string if it's an object
+        if isinstance(value, dict) or isinstance(value, list):
+            value = json.dumps(value, indent=2)
+        elif value is None:
+            value = ""
+        else:
+            value = str(value)
+        
+        normalized_sections[expected_key] = value.strip() if value else "Unable to generate analysis"
+    
+    # If all sections are empty, return defaults
+    if all(v == "Unable to generate analysis" or not v for v in normalized_sections.values()):
+        normalized_sections = {
+            "language_dialogue": "Unable to generate analysis",
+            "religion_values": "Unable to generate analysis",
+            "censorship_risk": "Unable to generate analysis",
+            "audience_breakdown": "Unable to generate analysis",
+            "historical_context": "Unable to generate analysis"
+        }
+    
     # Save to database
     try:
         await db.alignments.update_one(
@@ -554,7 +582,7 @@ Reply with ONLY raw JSON (no markdown):
                 "movie.title": {"$regex": f"^{req.movie_title}$", "$options": "i"},
                 "target_region": req.target_region
             },
-            {"$set": {"deep_analysis": {"sections": sections}, "deep_analysis_generated_at": datetime.utcnow()}}
+            {"$set": {"deep_analysis": {"sections": normalized_sections}, "deep_analysis_generated_at": datetime.utcnow()}}
         )
     except Exception as e:
         print(f"[Deep Analysis] Failed to save to DB: {e}")
@@ -564,5 +592,5 @@ Reply with ONLY raw JSON (no markdown):
         "target_region": req.target_region,
         "score": req.score,
         "label": req.label,
-        "sections": sections
+        "sections": normalized_sections
     }

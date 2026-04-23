@@ -317,7 +317,11 @@ function DeepPanel({
 
               {/* Sections */}
               {SECTIONS.map(({ key, label }) => {
-                const text    = data.sections[key as keyof typeof data.sections];
+                let text = data.sections[key as keyof typeof data.sections];
+                // Ensure text is a string, not an object
+                if (typeof text === "object" && text !== null) {
+                  text = JSON.stringify(text);
+                }
                 const isOpen  = openSections[key] ?? false;
                 return (
                   <div key={key}>
@@ -361,7 +365,7 @@ function DeepPanel({
                         lineHeight: 1.65,
                         background: "rgba(99, 102, 241, 0.04)",
                       }}>
-                        {text}
+                        {String(text)}
                       </div>
                     )}
                   </div>

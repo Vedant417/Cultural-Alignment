@@ -17,7 +17,8 @@ export default function RecommendationRow({ currentTitle, region, score }: Props
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ title: currentTitle, region, score }),
       });
-      setRecs(await res.json());
+      const data = await res.json();
+      setRecs(data.recommendations || []);
     } finally {
       setLoading(false);
     }

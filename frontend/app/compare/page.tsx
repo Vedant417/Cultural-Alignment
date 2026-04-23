@@ -140,12 +140,20 @@ export default function ComparePage() {
 
         try {
           const rec = await fetch(
-            `${BASE}/api/recommend?title=${encodeURIComponent(
-              movieInput
-            )}`
+            `${BASE}/api/analyze/recommend`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: movieInput,
+                region: selected[0] || "United States",
+                score: result?.entries[0]?.score || 7,
+                genre: "",
+              })
+            }
           ).then((r) => r.json());
 
-          setRecommendations(rec);
+          setRecommendations(rec.recommendations || []);
         } catch {}
       } catch (e: unknown) {
         setError(e instanceof Error ? e.message : "Comparison failed.");

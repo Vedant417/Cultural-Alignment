@@ -102,6 +102,91 @@ async def analyze(request: AnalyzeRequest):
 
 
 # ================================
+# ANALYZE MULTI-COUNTRY
+# ================================
+class MultiCountryAnalyzeRequest(BaseModel):
+    movie_input: str
+    target_regions: list[str]
+
+
+@router.post("/analyze/multi-country")
+async def analyze_multi_country(request: MultiCountryAnalyzeRequest):
+    """Analyze one movie across multiple countries."""
+    import asyncio
+    
+    movie_data = await fetch_movie(request.movie_input)
+    if not movie_data:
+        raise HTTPException(404, "Movie not found")
+
+    origin = await detect_region(movie_data)
+
+    tmdb_id = movie_data.get("tmdb_id")
+    recs = await fetch_recommendations(str(tmdb_id)) if tmdb_id else []
+    genres = await fetch_genres(str(tmdb_id)) if tmdb_id else []
+
+    db = get_db()
+    results = {}
+
+    for region in request.target_regions:
+        # Check cache first
+        cached = await db.alignments.find_one({
+            "movie.title": {"$regex": f"^{movie_data['title']}$", "$options": "i"},
+            "target_region": region,
+        })
+        
+        if cached:
+            results[region] = {
+                "id": str(cached["_id"]),
+                "score": cached["result"]["score"],
+                "label": cached["result"]["label"],
+                "reason": cached["result"]["reason"],
+                "audience_note": cached["result"]["audience_note"],
+                "content_flags": cached["result"]["content_flags"],
+                "cached": True
+            }
+            continue
+
+        # Score for this region
+        score_data = await get_cultural_score(movie_data, region)
+        if not score_data:
+            results[region] = {
+                "score": None,
+                "label": "Error",
+                "reason": "Scoring failed",
+                "audience_note": "",
+                "content_flags": {},
+                "cached": False
+            }
+            continue
+
+        # Build and save document with upsert to prevent duplicates
+        doc = _build_doc(movie_data, origin, region, score_data, recs, genres)
+        result = await db.alignments.update_one(
+            {
+                "movie.title": {"$regex": f"^{movie_data['title']}$", "$options": "i"},
+                "target_region": region
+            },
+            {"$set": doc.model_dump()},
+            upsert=True
+        )
+
+        results[region] = {
+            "id": str(result.upserted_id) if result.upserted_id else str(cached.get("_id", "")),
+            "score": score_data.get("score"),
+            "label": score_data.get("label", ""),
+            "reason": score_data.get("reason", ""),
+            "audience_note": score_data.get("audience_note", ""),
+            "content_flags": score_data.get("content_flags", {}),
+            "cached": False
+        }
+
+    return {
+        "movie": movie_data,
+        "results": results
+    }
+
+
+# ================================
 # RECOMMEND (FIXED)
 # ================================
 class RecommendRequest(BaseModel):
@@ -184,7 +269,14 @@ async def deep_analysis(req: DeepAnalysisRequest):
     })
 
     if cached:
-        return {"cached": True, "data": cached["deep_analysis"]}
+        deep_data = cached.get("deep_analysis", {})
+        return {
+            "movie_title": req.movie_title,
+            "target_region": req.target_region,
+            "score": req.score,
+            "label": req.label,
+            "sections": deep_data.get("sections", {})
+        }
 
     # Generate deep analysis
     prompt = f"""
@@ -194,23 +286,36 @@ Initial assessment: {req.label} (score: {req.score}/10)
 Reasoning: {req.brief_reason}
 
 Provide detailed analysis on:
-1. Cultural themes and values alignment
-2. Historical/political context relevance
-3. Language and accessibility considerations
-4. Content sensitivity in this region
-5. Target audience demographics
-6. Recommendations for enjoyment
+1. Language and dialogue appropriateness for {req.target_region}
+2. Religion and cultural values alignment
+3. Censorship risk and content sensitivity
+4. Target audience breakdown for {req.target_region}
+5. Historical and political context relevance
 
 Reply with ONLY raw JSON (no markdown):
-{{"sections":{{"themes":"","context":"","language":"","content":"","audience":"","recommendations":""}},"generated_at":"datetime"}}
+{{"sections":{{"language_dialogue":"Explain how language, subtitles, and dialogue are appropriate for {req.target_region}","religion_values":"Explain how religious references and cultural values align with {req.target_region}","censorship_risk":"Assess risk of censorship or banning in {req.target_region}","audience_breakdown":"Describe ideal audience demographics in {req.target_region}","historical_context":"Explain historical or political context relevant to {req.target_region}"}}}}
 """
 
     raw = await call_llm(prompt)
     parsed = safe_parse_json(raw)
     
-    if not parsed:
-        return {"cached": False, "data": {}}
+    if not parsed or "sections" not in parsed:
+        return {
+            "movie_title": req.movie_title,
+            "target_region": req.target_region,
+            "score": req.score,
+            "label": req.label,
+            "sections": {
+                "language_dialogue": "Unable to generate analysis",
+                "religion_values": "Unable to generate analysis",
+                "censorship_risk": "Unable to generate analysis",
+                "audience_breakdown": "Unable to generate analysis",
+                "historical_context": "Unable to generate analysis"
+            }
+        }
 
+    sections = parsed.get("sections", {})
+    
     # Save to database
     try:
         await db.alignments.update_one(
@@ -218,9 +323,15 @@ Reply with ONLY raw JSON (no markdown):
                 "movie.title": {"$regex": f"^{req.movie_title}$", "$options": "i"},
                 "target_region": req.target_region
             },
-            {"$set": {"deep_analysis": parsed, "deep_analysis_generated_at": datetime.utcnow()}}
+            {"$set": {"deep_analysis": {"sections": sections}, "deep_analysis_generated_at": datetime.utcnow()}}
         )
     except Exception as e:
         print(f"[Deep Analysis] Failed to save to DB: {e}")
 
-    return {"cached": False, "data": parsed}
+    return {
+        "movie_title": req.movie_title,
+        "target_region": req.target_region,
+        "score": req.score,
+        "label": req.label,
+        "sections": sections
+    }

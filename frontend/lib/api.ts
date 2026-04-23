@@ -69,6 +69,23 @@ export async function compareMovieAcrossRegions(
   return res.json();
 }
 
+// ── Multi-country analysis (1 movie, multiple countries) ─────────
+export async function analyzeMovieMultiCountry(
+  movieInput: string,
+  regions:    string[]
+): Promise<any> {
+  const res = await fetch(`${BASE}/api/analyze/multi-country`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ movie_input: movieInput, target_regions: regions }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { detail?: string }).detail || "Multi-country analysis failed");
+  }
+  return res.json();
+}
+
 // ── Movie-vs-Movie comparison (2 movies, 1 country) ────────────────
 export async function compareTwoMovies(
   movieA:       string,

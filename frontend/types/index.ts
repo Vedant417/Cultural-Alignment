@@ -7,6 +7,7 @@ export interface MovieInfo {
   genres?:      Array<{id: number; name: string}>;
   popularity?:  number;
   tmdb_id?:     number;
+  imdb_id?:     string;
 }
 
 export interface RegionInfo {

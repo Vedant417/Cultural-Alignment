@@ -13,6 +13,7 @@ class MovieInfo(BaseModel):
     genres:       Optional[List[dict]] = []
     popularity:   Optional[float] = 0
     tmdb_id:      Optional[int] = None
+    imdb_id:      Optional[str] = None
 
 
 class RegionInfo(BaseModel):

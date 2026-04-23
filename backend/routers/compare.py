@@ -47,7 +47,7 @@ def _build_compare_entry(movie_data: dict, origin: dict, score_data: dict, winne
 
 
 async def _save_to_db(movie_data: dict, origin: dict, region: str, score_data: dict):
-    """Save analysis to MongoDB (non-blocking — errors silently ignored)."""
+    """Save analysis to MongoDB with upsert to prevent duplicates (non-blocking — errors silently ignored)."""
     try:
         db = get_db()
         flags_raw = score_data.get("content_flags", {})
@@ -78,7 +78,15 @@ async def _save_to_db(movie_data: dict, origin: dict, region: str, score_data: d
                 ],
             ),
         )
-        await db.alignments.insert_one(doc.model_dump())
+        # Use upsert to prevent duplicates: if same movie+region exists, update it; otherwise insert
+        await db.alignments.update_one(
+            {
+                "movie.title": {"$regex": f"^{movie_data['title']}$", "$options": "i"},
+                "target_region": region
+            },
+            {"$set": doc.model_dump()},
+            upsert=True
+        )
     except Exception:
         pass
 
@@ -114,6 +122,16 @@ async def compare_two_movies(req: TwoMovieRequest):
         raise HTTPException(
             status_code=404,
             detail=f"Movie B not found: '{req.movie_input_b}'. Check the title or link."
+        )
+
+    # ── Check if both movies are the same ──
+    movie_a_title_normalized = movie_a.get("title", "").lower().strip()
+    movie_b_title_normalized = movie_b.get("title", "").lower().strip()
+    
+    if movie_a_title_normalized == movie_b_title_normalized:
+        raise HTTPException(
+            status_code=400,
+            detail=f"You selected the same movie twice: '{movie_a.get('title')}'. Please select two different movies to compare."
         )
 
     # ── Detect origins + score both in parallel (with error handling) ──

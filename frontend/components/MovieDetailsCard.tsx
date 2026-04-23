@@ -57,6 +57,56 @@ export default function MovieDetailsCard({
           <Row icon="🌐" label="Language"  value={lang} />
           <Row icon="🎥" label="Origin"    value={originRegion} />
           <Row icon="📖" label="Overview"  value={movie.overview || "No overview available."} />
+          
+          {/* External Links */}
+          <div style={{ display: "flex", gap: "10px", alignItems: "center", marginTop: "12px", paddingTop: "12px", borderTop: "1px solid #252d45" }}>
+            {movie.imdb_id && (
+              <a
+                href={`https://www.imdb.com/title/${movie.imdb_id}/`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  padding: "6px 12px",
+                  background: "#ffd700",
+                  color: "#000",
+                  borderRadius: "6px",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                🎬 IMDb
+              </a>
+            )}
+            {movie.tmdb_id && (
+              <a
+                href={`https://www.themoviedb.org/movie/${movie.tmdb_id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: "inline-block",
+                  padding: "6px 12px",
+                  background: "#01b4e4",
+                  color: "#fff",
+                  borderRadius: "6px",
+                  fontWeight: 700,
+                  fontSize: "12px",
+                  textDecoration: "none",
+                  cursor: "pointer",
+                  transition: "opacity 0.2s",
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.8")}
+                onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
+              >
+                🎞️ TMDB
+              </a>
+            )}
+          </div>
         </div>
       </div>
     </div>

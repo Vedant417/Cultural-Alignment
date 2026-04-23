@@ -161,6 +161,15 @@ export default function ComparePage() {
         return;
       }
 
+      // Normalize and check if the same movie
+      const movieA_normalized = movieInput.trim().toLowerCase().replace(/\s+/g, " ");
+      const movieB_normalized = movieB.trim().toLowerCase().replace(/\s+/g, " ");
+      
+      if (movieA_normalized === movieB_normalized) {
+        setError("You selected the same movie twice. Please select two different movies to compare.");
+        return;
+      }
+
       setLoading(true);
       setError(null);
       setTwoMovieResult(null);

@@ -114,6 +114,7 @@ async def _build_movie_dict(movie: dict) -> dict:
         "genres":       movie.get("genres", []),
         "popularity":   movie.get("popularity", 0),
         "tmdb_id":      movie.get("id"),
+        "imdb_id":      movie.get("imdb_id"),
     }
 
 

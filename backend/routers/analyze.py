@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from datetime import datetime
 from bson import ObjectId
-import os
 import json
 
 from backend.db.connection import get_db
@@ -17,54 +16,9 @@ from backend.modules.tmdb import fetch_movie, fetch_recommendations, fetch_genre
 from backend.modules.hybrid_fetcher import hybrid_fetch_movie
 from backend.modules.region import detect_region
 from backend.modules.scorer import get_cultural_score, get_multi_cultural_scores
-from backend.modules.ollama_client import ollama_generate, extract_json_robust
-
-# ✅ GROQ SUPPORT
-try:
-    from groq import Groq
-except:
-    Groq = None
+from backend.modules.llm import call_llm, safe_parse_json
 
 router = APIRouter(prefix="/api", tags=["analyze"])
-
-
-# ================================
-# ✅ LLM HANDLER (FIXED)
-# ================================
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-def get_llm_client():
-    if GROQ_API_KEY and Groq:
-        return Groq(api_key=GROQ_API_KEY)
-    return None
-
-
-async def call_llm(prompt: str, timeout: int = 60) -> str:
-    client = get_llm_client()
-
-    # ✅ Use GROQ (Production)
-    if client:
-        try:
-            response = client.chat.completions.create(
-                model="llama3-70b-8192",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return response.choices[0].message.content
-        except Exception as e:
-            print(f"[Groq ERROR] {e}")
-            raise HTTPException(500, "LLM failed (Groq)")
-
-    # ✅ Fallback: Ollama (Local)
-    try:
-        return await ollama_generate(prompt, timeout=timeout)
-    except Exception as e:
-        print(f"[Ollama ERROR] {e}")
-        raise HTTPException(500, "No LLM provider available")
-
-
-def parse_json_response(raw: str):
-    raw = raw.strip().replace("```json", "").replace("```", "")
-    return json.loads(raw)
 
 
 # ================================
@@ -159,16 +113,20 @@ class RecommendRequest(BaseModel):
 
 @router.post("/analyze/recommend")
 async def recommend(body: RecommendRequest):
-
+    """Recommend movies similar to the given title for a target region."""
     prompt = f"""
 Recommend 3 movies similar to "{body.title}" for {body.region}.
-Return JSON only.
+
+Consider cultural themes, audience preferences, and content that resonates with {body.region}.
+
+Reply with ONLY raw JSON (no markdown):
+{{"recommendations":[{{"title":"Movie Title","reason":"Why it fits for {body.region}"}}]}}
 """
 
     raw = await call_llm(prompt)
-    data = parse_json_response(raw)
+    data = safe_parse_json(raw)
 
-    return {"recommendations": data}
+    return {"recommendations": data.get("recommendations", [])}
 
 
 # ================================
@@ -182,14 +140,24 @@ class ExplainRequest(BaseModel):
 
 @router.post("/analyze/explain")
 async def explain(body: ExplainRequest):
-
+    """Explain the cultural fit of a movie in a target region."""
     prompt = f"""
-Explain cultural fit of "{body.title}" in {body.region}.
-Return JSON.
+Explain the cultural fit of "{body.title}" for audiences in {body.region}.
+
+Context: {body.summary}
+
+Consider:
+- Language and accessibility
+- Cultural themes and values alignment
+- Content sensitivity (violence, adult themes, religion, drugs)
+- Audience demographics in {body.region}
+
+Reply with ONLY raw JSON (no markdown):
+{{"cultural_fit":"explanation","language_accessibility":"assessment","themes":"relevant themes","content_notes":"any content warnings for {body.region}"}}
 """
 
     raw = await call_llm(prompt)
-    return parse_json_response(raw)
+    return safe_parse_json(raw)
 
 
 # ================================
@@ -205,11 +173,12 @@ class DeepAnalysisRequest(BaseModel):
 
 @router.post("/analyze/deep")
 async def deep_analysis(req: DeepAnalysisRequest):
-
+    """Perform deep cultural analysis of a movie for a target region."""
     db = get_db()
 
+    # Check cache first
     cached = await db.alignments.find_one({
-        "movie.title": req.movie_title,
+        "movie.title": {"$regex": f"^{req.movie_title}$", "$options": "i"},
         "target_region": req.target_region,
         "deep_analysis": {"$exists": True}
     })
@@ -217,17 +186,41 @@ async def deep_analysis(req: DeepAnalysisRequest):
     if cached:
         return {"cached": True, "data": cached["deep_analysis"]}
 
+    # Generate deep analysis
     prompt = f"""
-Deep analyze "{req.movie_title}" for {req.target_region}.
-Return JSON.
+Perform a deep cultural analysis of "{req.movie_title}" for {req.target_region}.
+
+Initial assessment: {req.label} (score: {req.score}/10)
+Reasoning: {req.brief_reason}
+
+Provide detailed analysis on:
+1. Cultural themes and values alignment
+2. Historical/political context relevance
+3. Language and accessibility considerations
+4. Content sensitivity in this region
+5. Target audience demographics
+6. Recommendations for enjoyment
+
+Reply with ONLY raw JSON (no markdown):
+{{"sections":{{"themes":"","context":"","language":"","content":"","audience":"","recommendations":""}},"generated_at":"datetime"}}
 """
 
     raw = await call_llm(prompt)
-    parsed = parse_json_response(raw)
+    parsed = safe_parse_json(raw)
+    
+    if not parsed:
+        return {"cached": False, "data": {}}
 
-    await db.alignments.update_one(
-        {"movie.title": req.movie_title, "target_region": req.target_region},
-        {"$set": {"deep_analysis": parsed}}
-    )
+    # Save to database
+    try:
+        await db.alignments.update_one(
+            {
+                "movie.title": {"$regex": f"^{req.movie_title}$", "$options": "i"},
+                "target_region": req.target_region
+            },
+            {"$set": {"deep_analysis": parsed, "deep_analysis_generated_at": datetime.utcnow()}}
+        )
+    except Exception as e:
+        print(f"[Deep Analysis] Failed to save to DB: {e}")
 
     return {"cached": False, "data": parsed}

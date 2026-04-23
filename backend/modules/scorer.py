@@ -1,4 +1,4 @@
-from backend.modules.ollama_client import ollama_generate, extract_json_robust
+from backend.modules.llm import call_llm, safe_parse_json
 
 
 # ─── Single country score ─────────────────────────────────────────
@@ -55,11 +55,11 @@ async def get_cultural_score(
         f']}}'
     )
 
-    raw = await ollama_generate(prompt, timeout=300)
+    raw = await call_llm(prompt, timeout=300)
     if not raw:
         return {}
 
-    parsed = extract_json_robust(raw)
+    parsed = safe_parse_json(raw)
 
     if "score" in parsed:
         try:
@@ -108,11 +108,11 @@ async def get_multi_cultural_scores(
         f']}}'
     )
 
-    raw = await ollama_generate(prompt, timeout=360)  # slightly longer for multi
+    raw = await call_llm(prompt, timeout=360)  # slightly longer for multi
     if not raw:
         return []
 
-    parsed = extract_json_robust(raw)
+    parsed = safe_parse_json(raw)
     scores = parsed.get("scores", [])
 
     # Validate and sanitize each entry

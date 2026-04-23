@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     GROQ_API_KEY:    str  = ""                           # blank = Groq disabled
     GROQ_MODEL:      str  = "llama-3.3-70b-versatile"    # updated from decommissioned llama3-70b-8192
     LLM_PROVIDER:    str  = "auto"                       # "auto" | "ollama" | "groq"
+    ENVIRONMENT:     str  = "development"                # "development" | "production" (set in Railway)
 
     class Config:
         env_file = ".env"

@@ -6,7 +6,7 @@ from backend.modules.tmdb import fetch_movie
 from backend.modules.hybrid_fetcher import hybrid_fetch_movie
 from backend.modules.region import detect_region
 from backend.modules.scorer import get_cultural_score
-from backend.modules.ollama_client import ollama_generate, extract_json_robust
+from backend.modules.llm import call_llm, safe_parse_json
 from datetime import datetime
 import asyncio
 
@@ -193,13 +193,12 @@ async def compare_two_movies(req: TwoMovieRequest):
         {{"winner": "A" or "B", "confidence": 1-10, "reason": "Why this movie is better for {req.target_region}. Explain specifically what makes it more culturally aligned."}}
         """
         
-        ai_comparison_result = await ollama_generate(comparison_prompt, timeout=20)
+        ai_comparison_result = await call_llm(comparison_prompt, timeout=20)
         a_wins = True  # default
         
         if ai_comparison_result:
             try:
-                import json
-                comparison_data = extract_json_robust(ai_comparison_result)
+                comparison_data = safe_parse_json(ai_comparison_result)
                 if comparison_data and comparison_data.get("winner") == "B":
                     a_wins = False
                 print(f"[Comparison] AI Decision: {'A' if a_wins else 'B'} wins with confidence {comparison_data.get('confidence', 'N/A')}")

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from backend.routers import analyze, history, translate, compare
-from backend.db.connection import connect_db, close_db
+from backend.db.connection import connect_db, close_db, get_db
 from backend.modules.ollama_client import get_ollama_model   # unchanged import
 
 app = FastAPI(
@@ -72,6 +72,7 @@ async def debug_env():
     """Check environment variables (for debugging only - remove in production)."""
     import os
     return {
+        "ENVIRONMENT": os.getenv("ENVIRONMENT", "development"),
         "MONGODB_URI": "SET" if os.getenv("MONGODB_URI") else "NOT SET",
         "MONGODB_DB": os.getenv("MONGODB_DB", "culture_align"),
         "TMDB_API_KEY": "SET" if os.getenv("TMDB_API_KEY") else "NOT SET",

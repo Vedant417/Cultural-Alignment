@@ -8,10 +8,16 @@ router = APIRouter(prefix="/api", tags=["history"])
 
 
 def _serialize(doc: dict) -> dict:
-    """Convert ObjectId to string and datetime to ISO string."""
+    """Convert ObjectId to string and all datetime fields to ISO string."""
+    from datetime import datetime as dt
+    
     doc["id"] = str(doc.pop("_id"))
-    if hasattr(doc.get("searched_at"), "isoformat"):
-        doc["searched_at"] = doc["searched_at"].isoformat()
+    
+    # Convert all datetime fields to ISO strings
+    for key, value in doc.items():
+        if isinstance(value, dt):
+            doc[key] = value.isoformat()
+    
     return doc
 
 

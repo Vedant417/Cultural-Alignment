@@ -1,4 +1,4 @@
-from backend.modules.ollama_client import ollama_generate, extract_json_robust
+from backend.modules.llm import call_llm, safe_parse_json
 
 LANGUAGE_TO_COUNTRY: dict[str, dict] = {
     # -------- GLOBAL --------
@@ -88,8 +88,8 @@ async def detect_region(movie_data: dict) -> dict:
         f'{{"region":"United States","state":"California","lat":34.0522,"lon":-118.2437}}'
     )
 
-    raw    = await ollama_generate(prompt, timeout=120)
-    parsed = extract_json_robust(raw) if raw else {}
+    raw    = await call_llm(prompt, timeout=120)
+    parsed = safe_parse_json(raw) if raw else {}
     region = parsed.get("region", "")
 
     # Fallback to language map if Ollama gave nothing useful

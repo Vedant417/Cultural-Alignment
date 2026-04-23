@@ -234,3 +234,64 @@ async def fetch_genres(tmdb_id: str) -> list:
     except Exception:
         pass
     return []
+
+
+async def fetch_movies_by_genre(genre_name: str, limit: int = 20) -> list:
+    """Fetch movies by genre name from TMDB."""
+    # First, get all genres to find the genre ID
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            # Get genre list
+            genres_url = "https://api.themoviedb.org/3/genre/movie/list"
+            genres_resp = await client.get(genres_url, params={
+                "api_key": settings.TMDB_API_KEY,
+                "language": "en-US"
+            })
+            
+            if genres_resp.status_code != 200:
+                return []
+            
+            genres_data = genres_resp.json().get("genres", [])
+            genre_id = None
+            
+            # Find genre ID by name (case-insensitive)
+            for genre in genres_data:
+                if genre.get("name", "").lower() == genre_name.lower():
+                    genre_id = genre.get("id")
+                    break
+            
+            if not genre_id:
+                return []
+            
+            # Get movies for this genre
+            discover_url = "https://api.themoviedb.org/3/discover/movie"
+            discover_resp = await client.get(discover_url, params={
+                "api_key": settings.TMDB_API_KEY,
+                "language": "en-US",
+                "with_genres": genre_id,
+                "sort_by": "popularity.desc",
+                "page": 1
+            })
+            
+            if discover_resp.status_code != 200:
+                return []
+            
+            movies_data = discover_resp.json().get("results", [])
+            movies = []
+            
+            for movie in movies_data[:limit]:
+                movies.append({
+                    "title": movie.get("title", ""),
+                    "overview": movie.get("overview", ""),
+                    "release_date": movie.get("release_date", ""),
+                    "language": movie.get("original_language", ""),
+                    "poster_url": f"https://image.tmdb.org/t/p/w500{movie.get('poster_path', '')}" if movie.get("poster_path") else "",
+                    "tmdb_id": movie.get("id"),
+                    "popularity": movie.get("popularity", 0),
+                })
+            
+            return movies
+    except Exception:
+        pass
+    
+    return []

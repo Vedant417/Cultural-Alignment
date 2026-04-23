@@ -12,7 +12,7 @@ from backend.db.models import (
     ContentFlags, SimilarMovie,
 )
 
-from backend.modules.tmdb import fetch_movie, fetch_recommendations, fetch_genres
+from backend.modules.tmdb import fetch_movie, fetch_recommendations, fetch_genres, fetch_movies_by_genre
 from backend.modules.hybrid_fetcher import hybrid_fetch_movie
 from backend.modules.region import detect_region
 from backend.modules.scorer import get_cultural_score, get_multi_cultural_scores
@@ -594,3 +594,33 @@ Reply with ONLY raw JSON (no markdown):
         "label": req.label,
         "sections": normalized_sections
     }
+
+
+# ================================
+# GENRE MOVIES
+# ================================
+@router.get("/analyze/genre-movies")
+async def get_genre_movies(genre_name: str, limit: int = 20):
+    """Fetch movies by genre from TMDB."""
+    if not genre_name or not genre_name.strip():
+        raise HTTPException(status_code=400, detail="Genre name is required")
+    
+    try:
+        movies = await fetch_movies_by_genre(genre_name, limit)
+        
+        if not movies:
+            return {
+                "genre": genre_name,
+                "count": 0,
+                "movies": [],
+                "message": f"No movies found for genre '{genre_name}'"
+            }
+        
+        return {
+            "genre": genre_name,
+            "count": len(movies),
+            "movies": movies
+        }
+    except Exception as e:
+        print(f"[Genre Movies] Error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch movies for genre: {str(e)}")

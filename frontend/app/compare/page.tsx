@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslation } from "@/hooks/useTranslation";
 import { compareMovieAcrossRegions, compareTwoMovies, checkTwoMoviesCached } from "@/lib/api";
+
+const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 import { CompareResponse } from "@/types";
 import type { SupportedLang } from "@/lib/translate";
 import { COUNTRIES } from "@/components/CountrySelector";
@@ -138,7 +140,7 @@ export default function ComparePage() {
 
         try {
           const rec = await fetch(
-            `http://localhost:8000/api/recommend?title=${encodeURIComponent(
+            `${BASE}/api/recommend?title=${encodeURIComponent(
               movieInput
             )}`
           ).then((r) => r.json());

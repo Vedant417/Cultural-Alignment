@@ -179,7 +179,7 @@ export async function deleteAnalysis(id: string): Promise<void> {
 
 // Grouped history — one entry per movie
 export async function getGroupedHistory() {
-  const res = await fetch("http://localhost:8000/api/history/grouped/all", {
+  const res = await fetch(`${BASE}/api/history/grouped/all`, {
     cache: "no-store",
   });
 

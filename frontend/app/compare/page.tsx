@@ -84,7 +84,7 @@ export default function ComparePage() {
 
   // Auto-translate when language changes
   useEffect(() => {
-    if (!result) return;
+    if (!result || !result.entries) return;
     if (lang === "en") {
       setDisplayResult(result);
       return;
@@ -126,7 +126,7 @@ export default function ComparePage() {
         // Initialize display with current language
         if (lang === "en") {
           setDisplayResult(data);
-        } else {
+        } else if (data.entries && data.entries.length > 0) {
           const translated = await translateEntries(data.entries, lang as SupportedLang);
           setDisplayResult({
             ...data,
@@ -136,6 +136,8 @@ export default function ComparePage() {
               label: t.label,
             })),
           });
+        } else {
+          setDisplayResult(data);
         }
 
         try {
@@ -382,7 +384,7 @@ export default function ComparePage() {
       )}
 
       {/* Mode A Results */}
-      {mode === "countries" && (displayResult || result) && !loading && (
+      {mode === "countries" && (displayResult || result) && !loading && (displayResult || result)?.entries && (
         <div className="fade-up">
           <ComparisonCards
             entries={(displayResult || result)!.entries}

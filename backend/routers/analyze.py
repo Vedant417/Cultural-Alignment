@@ -373,6 +373,7 @@ async def analyze_multi_country(request: MultiCountryAnalyzeRequest):
         
         if cached:
             results[region] = {
+                "region": region,
                 "id": str(cached["_id"]),
                 "score": cached["result"]["score"],
                 "label": cached["result"]["label"],
@@ -387,6 +388,7 @@ async def analyze_multi_country(request: MultiCountryAnalyzeRequest):
         score_data = await get_cultural_score(movie_data, region)
         if not score_data:
             results[region] = {
+                "region": region,
                 "score": None,
                 "label": "Error",
                 "reason": "Scoring failed",
@@ -407,8 +409,21 @@ async def analyze_multi_country(request: MultiCountryAnalyzeRequest):
             upsert=True
         )
 
+        # Get the document ID - if upserted_id exists use it, otherwise query for it
+        doc_id = None
+        if result.upserted_id:
+            doc_id = str(result.upserted_id)
+        else:
+            # Document was updated, not inserted - fetch it to get the ID
+            existing_doc = await db.alignments.find_one({
+                "movie.title": {"$regex": f"^{movie_data['title']}$", "$options": "i"},
+                "target_region": region
+            })
+            doc_id = str(existing_doc["_id"]) if existing_doc else ""
+
         results[region] = {
-            "id": str(result.upserted_id) if result.upserted_id else str(cached.get("_id", "")),
+            "region": region,
+            "id": doc_id,
             "score": score_data.get("score"),
             "label": score_data.get("label", ""),
             "reason": score_data.get("reason", ""),
@@ -419,7 +434,7 @@ async def analyze_multi_country(request: MultiCountryAnalyzeRequest):
 
     return {
         "movie": movie_data,
-        "results": results
+        "entries": list(results.values())
     }
 
 

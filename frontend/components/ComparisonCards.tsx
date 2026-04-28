@@ -55,7 +55,7 @@ interface Props {
 
 export default function ComparisonCards({ entries, movieTitle }: Props) {
   const { t } = useLanguage();
-  if (!entries.length) return null;
+  if (!entries?.length) return null;
 
   return (
     <div>

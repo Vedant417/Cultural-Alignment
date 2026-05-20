@@ -5,7 +5,6 @@
 
 export type SupportedLang = "en" | "hi" | "es" | "ja" | "fr" | "de" | "ar" | "ko";
 
-// Map our language codes to MyMemory codes (same in this case)
 const LANG_MAP: Record<SupportedLang, string> = {
   en: "en",
   hi: "hi",
@@ -50,7 +49,6 @@ export async function translateText(
 
     const data = (await res.json()) as any;
 
-    // MyMemory returns responseStatus 200 for success
     if (data.responseStatus === 200 && data.responseData?.translatedText) {
       const translated = data.responseData.translatedText as string;
       console.log(`[Translation] Success: "${translated.substring(0, 50)}..."`);

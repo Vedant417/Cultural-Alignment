@@ -35,7 +35,6 @@ export interface DeepAnalysisResponse {
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-// ── Single analyze — accepts title, TMDB link, or IMDB link ──────
 export async function analyzeMovie(
   movieInput:   string,
   targetRegion: string
@@ -52,7 +51,7 @@ export async function analyzeMovie(
   return res.json();
 }
 
-// ── Multi-country comparison ─────────────────────────────────────
+
 export async function compareMovieAcrossRegions(
   movieInput: string,
   regions:    string[]
@@ -69,7 +68,6 @@ export async function compareMovieAcrossRegions(
   return res.json();
 }
 
-// ── Multi-country analysis (1 movie, multiple countries) ─────────
 export async function analyzeMovieMultiCountry(
   movieInput: string,
   regions:    string[]
@@ -86,7 +84,7 @@ export async function analyzeMovieMultiCountry(
   return res.json();
 }
 
-// ── Movie-vs-Movie comparison (2 movies, 1 country) ────────────────
+
 export async function compareTwoMovies(
   movieA:       string,
   movieB:       string,
@@ -124,7 +122,7 @@ export async function compareTwoMovies(
   return res.json() as Promise<TwoMovieCompareResponse>;
 }
 
-// ── Check if comparison is cached from MongoDB ─────────────────────
+
 export async function checkTwoMoviesCached(
   movieA:       string,
   movieB:       string,
@@ -180,7 +178,6 @@ export async function fetchDeepAnalysis(
   return res.json();
 }
 
-// ── History ──────────────────────────────────────────────────────
 export async function getHistory(): Promise<AlignmentDocument[]> {
   const res = await fetch(`${BASE}/api/history`, { cache: "no-store" });
   if (!res.ok) throw new Error("Failed to fetch history");
@@ -194,7 +191,6 @@ export async function deleteAnalysis(id: string): Promise<void> {
 
 
 
-// Grouped history — one entry per movie
 export async function getGroupedHistory() {
   const res = await fetch(`${BASE}/api/history/grouped/all`, {
     cache: "no-store",
@@ -207,7 +203,6 @@ export async function getGroupedHistory() {
   return res.json();
 }
 
-// Fetch a specific cached analysis for pre-loading on analyze page
 export async function getCachedAnalysis(
   title: string,
   region: string
@@ -218,7 +213,7 @@ export async function getCachedAnalysis(
   return res.json();
 }
 
-// ── Favorites ────────────────────────────────────────────────────
+
 export async function saveFavorite(id: string): Promise<void> {
   const res = await fetch(`${BASE}/api/favorites/${id}`, { method: "POST" });
   if (!res.ok) throw new Error("Failed to save favorite");
@@ -235,7 +230,7 @@ export async function getFavorites(): Promise<AlignmentDocument[]> {
   return res.json();
 }
 
-// ── Genre Movies ─────────────────────────────────────────────────
+
 export async function getMoviesByGenre(
   genreName: string,
   limit: number = 20

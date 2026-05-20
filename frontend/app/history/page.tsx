@@ -29,8 +29,6 @@ export default function HistoryPage() {
   const { t } = useLanguage();
   const [groups, setGroups] = useState<GroupedHistory[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // ✅ NEW STATE
   const [search, setSearch] = useState("");
   const [filterScore, setFilterScore] =
     useState<"all" | "high" | "mid" | "low">("all");
@@ -50,8 +48,8 @@ export default function HistoryPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // ✅ FILTERING LOGIC
-  const filteredGroups = groups
+  // Fetch data
+  useEffect(() => {
     .filter((g) => {
       if (search && !g.title.toLowerCase().includes(search.toLowerCase()))
         return false;

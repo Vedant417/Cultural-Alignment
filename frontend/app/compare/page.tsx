@@ -53,8 +53,6 @@ export default function ComparePage() {
   const { t, lang } = useLanguage();
   const { translateEntries, isTranslating } = useTranslation();
   const [movieInput, setMovieInput] = useState("");
-
-  // ✅ Mode toggle states
   const [mode, setMode] = useState<"countries" | "movies">("countries");
   const [movieB, setMovieB] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("India");
@@ -82,7 +80,6 @@ export default function ComparePage() {
       p.includes(name) ? p.filter((c) => c !== name) : [...p, name]
     );
 
-  // Auto-translate when language changes
   useEffect(() => {
     if (!result || !result.entries) return;
     if (lang === "en") {
@@ -123,7 +120,6 @@ export default function ComparePage() {
           selected
         );
         setResult(data);
-        // Initialize display with current language
         if (lang === "en") {
           setDisplayResult(data);
         } else if (data.entries && data.entries.length > 0) {
@@ -171,7 +167,6 @@ export default function ComparePage() {
         return;
       }
 
-      // Normalize and check if the same movie
       const movieA_normalized = movieInput.trim().toLowerCase().replace(/\s+/g, " ");
       const movieB_normalized = movieB.trim().toLowerCase().replace(/\s+/g, " ");
       
@@ -205,7 +200,6 @@ export default function ComparePage() {
 
   return (
     <div>
-      {/* ── HERO ── */}
       <div style={{ marginBottom: "36px" }}>
         <h1 style={{ fontSize: "32px", fontWeight: 800 }}>
           {t("compare_hero_1")} <span style={{
@@ -220,7 +214,6 @@ export default function ComparePage() {
         </p>
       </div>
 
-      {/* ── MODE TOGGLE ── */}
       <div style={{
         display: "flex",
         gap: "6px",
@@ -253,7 +246,6 @@ export default function ComparePage() {
         ))}
       </div>
 
-      {/* ── INPUT ── */}
       <div style={{
         display: "flex",
         gap: "10px",
@@ -285,7 +277,6 @@ export default function ComparePage() {
         <LanguageSwitcher />
       </div>
 
-      {/* ── MODE B EXTRA INPUTS ── */}
       {mode === "movies" && (
         <div style={{ marginBottom: "16px", display: "flex", gap: "10px" }}>
           <input
@@ -324,7 +315,6 @@ export default function ComparePage() {
         </div>
       )}
 
-      {/* ── COUNTRY SELECT (Mode A only) ── */}
       {mode === "countries" && (
         <div style={{ marginBottom: "20px" }}>
           <p style={{ fontSize: "14px", color: "var(--text-2)", marginBottom: "10px" }}>
@@ -353,7 +343,7 @@ export default function ComparePage() {
         </div>
       )}
 
-      {/* ── RESULTS ── */}
+      {/* RESULTS */}
       {loading && <LoadingCard message={t("comparing")} />}
       {error && <p style={{ color: "red" }}>{error}</p>}
 
@@ -405,7 +395,6 @@ export default function ComparePage() {
         </div>
       )}
 
-      {/* ── RECOMMENDATIONS ── */}
       {mode === "countries" && result && recommendations.length > 0 && (
         <div style={{ marginTop: "32px" }}>
           <p className="ca-label" style={{ marginBottom: "12px" }}>

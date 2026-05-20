@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 from backend.db.connection import get_db
 from bson import ObjectId
-from datetime import datetime  # ✅ ADDED
+from datetime import datetime
 import re
 
 router = APIRouter(prefix="/api", tags=["history"])
@@ -20,10 +20,6 @@ def _serialize(doc: dict) -> dict:
     
     return doc
 
-
-# =========================================================
-# ✅ STATIC ROUTES FIRST (VERY IMPORTANT)
-# =========================================================
 
 @router.get("/history/grouped/all")
 async def get_history_grouped():

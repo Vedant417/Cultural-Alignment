@@ -32,7 +32,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <LanguageProvider>
           <ThemeProvider>
 
-            {/* ── NAV ─────────────────────────────────────────────── */}
             <nav style={{
               position:        "sticky",
               top:             0,
@@ -55,7 +54,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 gap:            "16px",
               }}>
 
-                {/* ── Left: Logo ── */}
                 <Link href="/" style={{ textDecoration:"none", display:"flex", alignItems:"center", gap:"11px", flexShrink:0 }}>
                   <div style={{
                     width:          "38px",
@@ -98,7 +96,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {/* Theme toggle — standalone, outside all Link elements */}
                 <ThemeToggle />
 
-                {/* ── Right: Nav links ── */}
                 <div style={{ display:"flex", gap:"2px" }}>
                   {[
                     { href:"/",        label:"Analyze", icon:"🔍" },
@@ -115,7 +112,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
             </nav>
 
-            {/* ── MAIN ─────────────────────────────────────────────── */}
             <main style={{
               maxWidth: "1240px",
               margin:   "0 auto",

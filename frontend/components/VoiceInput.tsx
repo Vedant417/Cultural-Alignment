@@ -64,7 +64,6 @@ export default function VoiceInput({ onVoiceInput, disabled = false }: VoiceInpu
 
     recognitionRef.current = recognition;
 
-    // Check if permission was already asked
     const permissionAskedBefore = localStorage.getItem("voicePermissionAsked");
     if (permissionAskedBefore) {
       setPermissionAsked(true);
@@ -83,7 +82,6 @@ export default function VoiceInput({ onVoiceInput, disabled = false }: VoiceInpu
       return;
     }
 
-    // Toggle listening state
     if (isListening) {
       recognitionRef.current.stop();
       setIsListening(false);

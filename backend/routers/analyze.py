@@ -22,9 +22,6 @@ import asyncio
 router = APIRouter(prefix="/api", tags=["analyze"])
 
 
-# ================================
-# CACHE
-# ================================
 async def _get_cached(title: str, target_region: str):
     db = get_db()
     return await db.alignments.find_one({
@@ -33,9 +30,6 @@ async def _get_cached(title: str, target_region: str):
     })
 
 
-# ================================
-# BUILD DOC
-# ================================
 def _build_doc(movie_data, origin, target_region, score_data, recommendations=None, genres=None):
     flags_raw = score_data.get("content_flags", {})
     sub = score_data.get("sub_scores") or {}
@@ -64,9 +58,6 @@ def _build_doc(movie_data, origin, target_region, score_data, recommendations=No
     )
 
 
-# ================================
-# ANALYZE
-# ================================
 @router.post("/analyze")
 async def analyze(request: AnalyzeRequest):
 
@@ -118,9 +109,6 @@ async def analyze(request: AnalyzeRequest):
     }
 
 
-# ================================
-# COMPARE (FORWARD TO COMPARE ROUTER)
-# ================================
 class CompareRequestAnalyze(BaseModel):
     movie_input_a: str
     movie_input_b: str
@@ -134,7 +122,6 @@ async def compare_two_movies_analyze(req: CompareRequestAnalyze):
     Fetches both movies in parallel, scores them in parallel.
     Returns side-by-side result with winner flag.
     """
-    # ── Validate inputs ──
     if not req.movie_input_a.strip():
         raise HTTPException(status_code=400, detail="Movie A is required.")
     if not req.movie_input_b.strip():
@@ -142,7 +129,6 @@ async def compare_two_movies_analyze(req: CompareRequestAnalyze):
     if not req.target_region.strip():
         raise HTTPException(status_code=400, detail="Target region is required.")
 
-    # ── Fetch both movies in parallel (hybrid) ──
     movie_a, movie_b = await asyncio.gather(
         hybrid_fetch_movie(req.movie_input_a.strip()),
         hybrid_fetch_movie(req.movie_input_b.strip()),
@@ -159,7 +145,7 @@ async def compare_two_movies_analyze(req: CompareRequestAnalyze):
             detail=f"Movie B not found: '{req.movie_input_b}'. Check the title or link."
         )
 
-    # ── Check if both movies are the same ──
+    # Check if both movies are the same
     movie_a_title_normalized = movie_a.get("title", "").lower().strip()
     movie_b_title_normalized = movie_b.get("title", "").lower().strip()
     
@@ -169,7 +155,6 @@ async def compare_two_movies_analyze(req: CompareRequestAnalyze):
             detail=f"You selected the same movie twice: '{movie_a.get('title')}'. Please select two different movies to compare."
         )
 
-    # ── Detect origins + score both in parallel (with error handling) ──
     try:
         origin_a, origin_b, score_a, score_b = await asyncio.gather(
             detect_region(movie_a),

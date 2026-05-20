@@ -18,19 +18,11 @@ async def connect_db():
     """Called on FastAPI startup. Creates the Motor client and selects the DB."""
     global _client, _db
     
-    # DEBUG: Check if env variable is loaded
     mongodb_uri = os.getenv("MONGODB_URI")
-    print(f"🔍 DEBUG: MONGODB_URI = {mongodb_uri[:50]}..." if mongodb_uri else "🔍 DEBUG: MONGODB_URI = NOT SET")
-    
     if not mongodb_uri:
-        raise RuntimeError(
-            "MONGODB_URI environment variable is not set. "
-            "Set it in Railway environment variables or your .env file."
-        )
+        raise RuntimeError("MONGODB_URI environment variable is not set")
     
     mongodb_db = os.getenv("MONGODB_DB", "culture_align")
-    print(f"🔍 DEBUG: MONGODB_DB = {mongodb_db}")
-    
     _validate_mongo_uri(mongodb_uri)
     
     try:
@@ -39,13 +31,9 @@ async def connect_db():
         await _client.admin.command("ping")
         print(f"✅ MongoDB connected: {mongodb_db}")
     except OperationFailure as exc:
-        raise RuntimeError(
-            "MongoDB authentication failed. Check environment variables and verify your Atlas credentials or local MongoDB URI."
-        ) from exc
+        raise RuntimeError("MongoDB authentication failed") from exc
     except Exception as exc:
-        raise RuntimeError(
-            f"Failed to connect to MongoDB: {str(exc)}"
-        ) from exc
+        raise RuntimeError(f"Failed to connect to MongoDB: {str(exc)}") from exc
 
 
 async def close_db():

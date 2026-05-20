@@ -47,7 +47,6 @@ def _build_compare_entry(movie_data: dict, origin: dict, score_data: dict, winne
 
 
 async def _save_to_db(movie_data: dict, origin: dict, region: str, score_data: dict):
-    """Save analysis to MongoDB with upsert to prevent duplicates (non-blocking — errors silently ignored)."""
     try:
         db = get_db()
         flags_raw = score_data.get("content_flags", {})
@@ -91,15 +90,8 @@ async def _save_to_db(movie_data: dict, origin: dict, region: str, score_data: d
         pass
 
 
-# ── POST /api/compare/two-movies ──────────────────────────────────
 @router.post("/two-movies")
 async def compare_two_movies(req: TwoMovieRequest):
-    """
-    Score TWO movies against ONE country.
-    Fetches both movies in parallel, scores them in parallel.
-    Returns side-by-side result with winner flag.
-    """
-    # ── Validate inputs ──
     if not req.movie_input_a.strip():
         raise HTTPException(status_code=400, detail="Movie A is required.")
     if not req.movie_input_b.strip():
@@ -107,7 +99,6 @@ async def compare_two_movies(req: TwoMovieRequest):
     if not req.target_region.strip():
         raise HTTPException(status_code=400, detail="Target region is required.")
 
-    # ── Fetch both movies in parallel (hybrid) ──
     movie_a, movie_b = await asyncio.gather(
         hybrid_fetch_movie(req.movie_input_a.strip()),
         hybrid_fetch_movie(req.movie_input_b.strip()),
@@ -124,7 +115,6 @@ async def compare_two_movies(req: TwoMovieRequest):
             detail=f"Movie B not found: '{req.movie_input_b}'. Check the title or link."
         )
 
-    # ── Check if both movies are the same ──
     movie_a_title_normalized = movie_a.get("title", "").lower().strip()
     movie_b_title_normalized = movie_b.get("title", "").lower().strip()
     
@@ -134,7 +124,6 @@ async def compare_two_movies(req: TwoMovieRequest):
             detail=f"You selected the same movie twice: '{movie_a.get('title')}'. Please select two different movies to compare."
         )
 
-    # ── Detect origins + score both in parallel (with error handling) ──
     try:
         origin_a, origin_b, score_a, score_b = await asyncio.gather(
             detect_region(movie_a),
@@ -170,19 +159,13 @@ async def compare_two_movies(req: TwoMovieRequest):
     if not score_b:
         raise HTTPException(status_code=500, detail=f"Scoring failed for '{movie_b['title']}'. Is Ollama/Groq running?")
 
-    # ── Run AI comparison to determine winner (always runs AI once) ──
     score_a_val = score_a.get("score") or 0
     score_b_val = score_b.get("score") or 0
     score_difference = abs(score_a_val - score_b_val)
-    is_tied = score_difference <= 0.5  # Within 0.5 point = tied
-    
-    print(f"[Comparison] Score A: {score_a_val}, Score B: {score_b_val}, Difference: {score_difference}")
-    
+    is_tied = score_difference <= 0.5
     if is_tied:
-        print(f"[Comparison] Scores are TIED - both movies equally culturally aligned")
         a_wins = True  # Mark both as "tied" will be handled on frontend
     else:
-        print(f"[Comparison] Running AI to determine winner between '{movie_a['title']}' and '{movie_b['title']}'")
         comparison_prompt = f"""
         You are a cultural media analyst. Compare these TWO movies for the region: {req.target_region}
         
@@ -219,14 +202,11 @@ async def compare_two_movies(req: TwoMovieRequest):
                 comparison_data = safe_parse_json(ai_comparison_result)
                 if comparison_data and comparison_data.get("winner") == "B":
                     a_wins = False
-                print(f"[Comparison] AI Decision: {'A' if a_wins else 'B'} wins with confidence {comparison_data.get('confidence', 'N/A')}")
             except:
-                print("[Comparison] Using score-based decision")
                 a_wins = score_a_val >= score_b_val
         else:
             a_wins = score_a_val >= score_b_val
 
-    # ── Save both to MongoDB (non-blocking) ──
     asyncio.create_task(_save_to_db(movie_a, origin_a, req.target_region, score_a))
     asyncio.create_task(_save_to_db(movie_b, origin_b, req.target_region, score_b))
 
@@ -237,13 +217,8 @@ async def compare_two_movies(req: TwoMovieRequest):
     }
 
 
-# ── POST /api/compare/check-cached ────────────────────────────────
 @router.post("/check-cached")
 async def check_two_movies_cached(req: TwoMovieRequest):
-    """
-    Check if a two-movie comparison is already cached in MongoDB.
-    Returns cached data if found, otherwise returns 404.
-    """
     db = get_db()
     
     try:

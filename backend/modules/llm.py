@@ -1,27 +1,11 @@
-"""
-Unified LLM Module - Production & Development
-==============================================
 
-Priority handling:
-- Production (ENVIRONMENT=production): Groq ONLY (model = llama-3.3-70b-versatile)
-- Local dev: Groq if key exists, else Ollama fallback
-- Always falls back to Ollama locally if Groq fails
-
-This module provides:
-  - call_llm(prompt, timeout): Main LLM entry point
-  - safe_parse_json(raw_str): Safely parse JSON with markdown cleanup
-"""
 
 import os
 import json
 import re
 from typing import Optional
 
-# Optional imports
-try:
-    from groq import AsyncGroq
-except:
-    AsyncGroq = None
+
 
 from backend.modules.ollama_client import ollama_generate
 from backend.config import settings
@@ -38,35 +22,14 @@ def _get_groq_client() -> Optional[AsyncGroq]:
 
 
 async def call_llm(prompt: str, timeout: int = 60) -> str:
-    """
-    Unified LLM entry point with production-aware fallback.
-    
-    Priority:
-    - Production: Groq only (raise error if not available)
-    - Development: Try Groq first, fallback to Ollama
-    
-    Args:
-        prompt: The prompt to send to the LLM
-        timeout: Timeout in seconds (applies to Ollama only)
-        
-    Returns:
-        LLM response string
-        
-    Raises:
-        RuntimeError: In production if Groq is not available
-    """
     client = _get_groq_client()
 
-    # --- Production: Groq only ---
     if ENVIRONMENT == "production":
         if not client:
-            raise RuntimeError(
-                "GROQ_API_KEY not set in production environment. "
-                "Set GROQ_API_KEY in Railway environment variables."
-            )
+            raise RuntimeError("GROQ_API_KEY not set in production")
         try:
             resp = await client.chat.completions.create(
-                model=settings.GROQ_MODEL,  # "llama-3.3-70b-versatile"
+                model=settings.GROQ_MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -83,13 +46,12 @@ async def call_llm(prompt: str, timeout: int = 60) -> str:
             )
             return resp.choices[0].message.content
         except Exception as e:
-            raise RuntimeError(f"Groq LLM failed in production: {str(e)}")
+            raise RuntimeError(f"Groq LLM failed: {str(e)}")
 
-    # --- Development: prefer Groq, fallback to Ollama ---
     if client:
         try:
             resp = await client.chat.completions.create(
-                model=settings.GROQ_MODEL,  # "llama-3.3-70b-versatile"
+                model=settings.GROQ_MODEL,
                 messages=[
                     {
                         "role": "system",
@@ -104,20 +66,15 @@ async def call_llm(prompt: str, timeout: int = 60) -> str:
                 temperature=0.4,
                 max_tokens=1024,
             )
-            print(f"[LLM] Using Groq — model: {settings.GROQ_MODEL}")
             return resp.choices[0].message.content
-        except Exception as e:
-            print(f"[LLM] Groq failed, falling back to Ollama: {e}")
+        except Exception:
+            pass
 
-    # Fallback to Ollama (always in dev, only if Groq unavailable)
     result = await ollama_generate(prompt, timeout=timeout)
     if result:
-        print(f"[LLM] Using Ollama fallback")
         return result
 
-    raise RuntimeError(
-        "No LLM provider available. Start Ollama (ollama serve) or set GROQ_API_KEY."
-    )
+    raise RuntimeError("No LLM provider available. Start Ollama (ollama serve) or set GROQ_API_KEY.")
 
 
 def safe_parse_json(raw: str) -> dict:

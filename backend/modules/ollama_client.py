@@ -1,18 +1,4 @@
-"""
-llm_client — dual-provider LLM interface
-=========================================
-Supports Ollama (local) and Groq (cloud) transparently.
 
-Auto-detection order (when LLM_PROVIDER=auto):
-  1. Try Ollama → if reachable, use it
-  2. Fall back to Groq → if GROQ_API_KEY is set, use it
-  3. If neither → return None (callers handle gracefully)
-
-The public interface is unchanged:
-  - ollama_generate(prompt, timeout) → str | None
-  - extract_json_robust(text)        → dict
-  - get_ollama_model()               → str | None  (now returns provider info)
-"""
 
 import re
 import json
@@ -21,9 +7,7 @@ from groq import AsyncGroq
 from backend.config import settings
 
 
-# ─────────────────────────────────────────────────────────────────
-# PROVIDER DETECTION
-# ─────────────────────────────────────────────────────────────────
+
 
 async def _is_ollama_running() -> bool:
     """Ping Ollama. Returns True if reachable within 4 seconds."""
@@ -58,9 +42,7 @@ async def _get_active_provider() -> str:
     return "none"
 
 
-# ─────────────────────────────────────────────────────────────────
-# OLLAMA HELPERS
-# ─────────────────────────────────────────────────────────────────
+
 
 async def _get_ollama_model_name() -> str | None:
     """Find the best available Ollama model."""

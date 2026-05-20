@@ -26,8 +26,5 @@ COPY --from=builder /app/package*.json ./
 # Install production deps only
 RUN npm install --omit=dev
 
-# 🔥 IMPORTANT: Railway dynamic port
 ENV PORT=3000
-
-# 🔥 IMPORTANT: bind to Railway network
-CMD ["sh", "-c", "npx next start -H 0.0.0.0 -p 8080"]
+CMD ["sh", "-c", "npx next start -H 0.0.0.0 -p 3000"]

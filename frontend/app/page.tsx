@@ -15,7 +15,7 @@ import PopularityTrendChart from "@/components/PopularityTrendChart";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import VoiceInput from "@/components/VoiceInput";
 
-/* ── Inline UI atoms — all use CSS vars ──────────────────────── */
+
 function Spinner({ size = 36 }: { size?: number }) {
   return (
     <div style={{
@@ -118,7 +118,6 @@ function AnalyzeContent() {
     }
   }, [searchParams, router, t]);
 
-  /* ── 🔗 Deep-link handler (URL params: title/region) ── */
   useEffect(() => {
     if (typeof window === "undefined") return;
     const params = new URLSearchParams(window.location.search);
@@ -145,7 +144,6 @@ function AnalyzeContent() {
     try {
       const data = await analyzeMovie(movie.trim(), country);
       setResult(data);
-      // Auto-translate if not English
       if (lang !== "en") {
         const translatedResult = await translateResult(data.result, lang as SupportedLang);
         const translatedMovie = await translateMovie(data.movie, lang as SupportedLang);
@@ -162,7 +160,6 @@ function AnalyzeContent() {
     }
   };
 
-  // Auto-translate when language changes
   useEffect(() => {
     if (!result) return;
     if (lang === "en") {
@@ -189,9 +186,7 @@ function AnalyzeContent() {
 
   return (
     <div>
-      {/* ════════════════════════════════════════════════════════
-          HERO SECTION
-          ════════════════════════════════════════════════════════ */}
+
       <div style={{ marginBottom: "40px", position: "relative" }}>
 
         {/* Background glow — decorative */}
@@ -400,9 +395,6 @@ function AnalyzeContent() {
           </div>        </div>
       </div>
 
-      {/* ════════════════════════════════════════════════════════
-          RESULT STATES
-          ════════════════════════════════════════════════════════ */}
 
       {loading && <LoadingState movie={movie} country={country} />}
       {error && !loading && <ErrorState message={error} />}
@@ -533,9 +525,7 @@ function AnalyzeContent() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════
-          EMPTY STATE — feature cards
-          ════════════════════════════════════════════════════════ */}
+
       {!result && !loading && !error && (
         <div style={{ marginTop: "8px" }}>
           <div style={{

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from backend.modules.translator import translate_text, batch_translate
+from ..modules.translator import translate_text, batch_translate
 
 router = APIRouter(prefix="/api", tags=["translate"])
 

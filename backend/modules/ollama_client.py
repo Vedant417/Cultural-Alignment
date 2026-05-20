@@ -4,7 +4,7 @@ import re
 import json
 import httpx
 from groq import AsyncGroq
-from backend.config import settings
+from ..config import settings
 
 
 

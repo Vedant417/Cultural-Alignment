@@ -5,10 +5,10 @@ import json
 import re
 from typing import Optional
 
+from groq import AsyncGroq
 
-
-from backend.modules.ollama_client import ollama_generate
-from backend.config import settings
+from .ollama_client import ollama_generate
+from ..config import settings
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 ENVIRONMENT = os.getenv("ENVIRONMENT", "development")

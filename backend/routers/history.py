@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Query
-from backend.db.connection import get_db
+from ..db.connection import get_db
 from bson import ObjectId
 from datetime import datetime
 import re

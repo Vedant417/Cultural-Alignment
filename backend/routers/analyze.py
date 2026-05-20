@@ -4,19 +4,19 @@ from datetime import datetime
 from bson import ObjectId
 import json
 
-from backend.db.connection import get_db
-from backend.db.models import (
+from ..db.connection import get_db
+from ..db.models import (
     AnalyzeRequest, CompareRequest, CompareResponse,
     AlignmentDocument, ComparisonEntry,
     MovieInfo, RegionInfo, AnalysisResult,
     ContentFlags, SimilarMovie,
 )
 
-from backend.modules.tmdb import fetch_movie, fetch_recommendations, fetch_genres, fetch_movies_by_genre
-from backend.modules.hybrid_fetcher import hybrid_fetch_movie
-from backend.modules.region import detect_region
-from backend.modules.scorer import get_cultural_score, get_multi_cultural_scores
-from backend.modules.llm import call_llm, safe_parse_json
+from ..modules.tmdb import fetch_movie, fetch_recommendations, fetch_genres, fetch_movies_by_genre
+from ..modules.hybrid_fetcher import hybrid_fetch_movie
+from ..modules.region import detect_region
+from ..modules.scorer import get_cultural_score, get_multi_cultural_scores
+from ..modules.llm import call_llm, safe_parse_json
 import asyncio
 
 router = APIRouter(prefix="/api", tags=["analyze"])

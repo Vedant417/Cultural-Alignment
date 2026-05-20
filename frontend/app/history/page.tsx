@@ -28,6 +28,7 @@ type GroupedHistory = {
 export default function HistoryPage() {
   const { t } = useLanguage();
   const [groups, setGroups] = useState<GroupedHistory[]>([]);
+  const [filteredGroups, setFilteredGroups] = useState<GroupedHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterScore, setFilterScore] =
@@ -50,7 +51,9 @@ export default function HistoryPage() {
 
   // Fetch data
   useEffect(() => {
-    .filter((g) => {
+    setFilteredGroups(
+      groups
+        .filter((g) => {
       if (search && !g.title.toLowerCase().includes(search.toLowerCase()))
         return false;
 
@@ -95,7 +98,9 @@ export default function HistoryPage() {
         return maxB - maxA;
       }
       return b.latest_date > a.latest_date ? 1 : -1;
-    });
+    })
+    );
+  }, [groups, search, filterCountry, filterScore, sortBy]);
 
   return (
     <div>

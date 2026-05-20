@@ -1,7 +1,7 @@
 import re
 import httpx
-from backend.config import settings
-from backend.modules.tmdb import parse_input, fetch_by_title, fetch_by_tmdb_id, fetch_by_imdb_id
+from ..config import settings
+from .tmdb import parse_input, fetch_by_title, fetch_by_tmdb_id, fetch_by_imdb_id
 
 
 async def fetch_from_omdb(imdb_id: str = None, title: str = None) -> dict | None:

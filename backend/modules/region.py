@@ -1,4 +1,4 @@
-from backend.modules.llm import call_llm, safe_parse_json
+from .llm import call_llm, safe_parse_json
 
 LANGUAGE_TO_COUNTRY: dict[str, dict] = {
     # -------- GLOBAL --------

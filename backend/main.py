@@ -1,8 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.routers import analyze, history, translate, compare
-from backend.db.connection import connect_db, close_db, get_db
-from backend.modules.ollama_client import get_ollama_model   # unchanged import
+
+from .routers import analyze, history, translate, compare
+from .db.connection import connect_db, close_db, get_db
+from .modules.ollama_client import get_ollama_model
 
 app = FastAPI(
     title="CultureAlign API",

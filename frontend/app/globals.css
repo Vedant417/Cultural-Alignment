@@ -9,55 +9,53 @@
    ════════════════════════════════════════════════════════════════ */
 :root,
 [data-theme="dark"] {
-  --bg:           #080b14;
-  --bg-card:      #0f1623;
-  --bg-deep:      #0a0d18;
-  --bg-hover:     rgba(255,255,255,0.03);
-  --border:       #1a2035;
-  --border-2:     #111827;
-  --text:         #eef2ff;
-  --text-2:       #7c8db5;
-  --text-3:       #3d4f6b;
-  --accent:       #6366f1;
-  --accent-dim:   rgba(99,102,241,0.15);
-  --accent-glow:  rgba(99,102,241,0.35);
-  --shadow-card:  0 1px 1px rgba(0,0,0,0.4), 0 8px 32px rgba(0,0,0,0.35);
-  --shadow-nav:   0 1px 0 rgba(255,255,255,0.04);
-  --nav-bg:       rgba(8,11,20,0.9);
-  --input-bg:     #0f1623;
-  --score-track:  #141c2e;
-  --green:  #10b981; --green-dim:  rgba(16,185,129,0.12);
-  --amber:  #f59e0b; --amber-dim:  rgba(245,158,11,0.12);
-  --orange: #f97316; --orange-dim: rgba(249,115,22,0.12);
-  --red:    #ef4444; --red-dim:    rgba(239,68,68,0.12);
+
+  --bg: #050816;
+  --bg-card: rgba(15, 23, 42, 0.82);
+  --bg-deep: #080d1c;
+
+  --bg-hover: rgba(224,170,94,0.08);
+
+  --border: rgba(255,255,255,0.08);
+  --border-2: rgba(255,255,255,0.04);
+
+  --text: #f8fafc;
+  --text-2: #cbd5e1;
+  --text-3: #94a3b8;
+
+  --accent: #e0aa5e;
+  --accent-2: #f4c97a;
+
+  --accent-dim: rgba(224,170,94,0.12);
+  --accent-glow: rgba(224,170,94,0.30);
+
+  --shadow-card:
+    0 10px 40px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+
+  --shadow-nav:
+    0 1px 0 rgba(255,255,255,0.04);
+
+  --nav-bg: rgba(5,8,22,0.82);
+
+  --bg-input: rgba(8,13,28,0.92);
+
+  --score-track: rgba(255,255,255,0.06);
+
+  --green: #10b981;
+  --green-dim: rgba(16,185,129,0.12);
+
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+
+  --orange: #f97316;
+  --orange-dim: rgba(249,115,22,0.12);
+
+  --red: #ef4444;
+  --red-dim: rgba(239,68,68,0.12);
 }
 
-/* ════════════════════════════════════════════════════════════════
-   LIGHT THEME
-   ════════════════════════════════════════════════════════════════ */
-[data-theme="light"] {
-  --bg:           #f5f7ff;
-  --bg-card:      #ffffff;
-  --bg-deep:      #eef1fb;
-  --bg-hover:     rgba(99,102,241,0.04);
-  --border:       #dde3f5;
-  --border-2:     #e8ecf8;
-  --text:         #0f172a;
-  --text-2:       #475569;
-  --text-3:       #94a3b8;
-  --accent:       #4f46e5;
-  --accent-dim:   rgba(79,70,229,0.1);
-  --accent-glow:  rgba(79,70,229,0.2);
-  --shadow-card:  0 1px 3px rgba(99,102,241,0.06), 0 8px 32px rgba(99,102,241,0.08);
-  --shadow-nav:   0 1px 0 rgba(0,0,0,0.06);
-  --nav-bg:       rgba(245,247,255,0.92);
-  --input-bg:     #ffffff;
-  --score-track:  #e8ecf8;
-  --green:  #059669; --green-dim:  rgba(5,150,105,0.1);
-  --amber:  #d97706; --amber-dim:  rgba(217,119,6,0.1);
-  --orange: #ea580c; --orange-dim: rgba(234,88,12,0.1);
-  --red:    #dc2626; --red-dim:    rgba(220,38,38,0.1);
-}
+
 
 /* ════════════════════════════════════════════════════════════════
    RESET & BASE
@@ -67,13 +65,17 @@
   margin: 0;
   padding: 0;
 }
-
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  background: #050816 !important;
 }
 
 body {
+  background:
+  radial-gradient(circle at top left, rgba(224,170,94,0.10), transparent 28%),
+  radial-gradient(circle at top right, rgba(245,201,122,0.08), transparent 24%),
+  linear-gradient(to bottom, #050816, #080b14 30%, #050816 100%) !important;
   font-family:            'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   background-color:       var(--bg);
   color:                  var(--text);
@@ -117,18 +119,32 @@ input::placeholder {
 
 input:focus, select:focus, textarea:focus {
   outline: none;
-  box-shadow: 0 0 0 3px var(--accent-dim);
+  box-shadow: none;
 }
 
 /* Ensure select options have proper colors */
 select {
-  background-color: var(--bg-input);
-  color: var(--text);
+  background-color: #08101f;
+  color: #ffffff;
 }
 
 select option {
-  background-color: var(--bg-card);
-  color: var(--text);
+  background-color: #111827;
+  color: #f8fafc;
+}
+
+/* Dropdown section labels */
+/* Group label options */
+/* Fix ugly white separator bars in dropdown */
+select optgroup {
+  background: #08101f !important;
+  color: rgba(255,255,255,0.38) !important;
+  font-weight: 700;
+}
+
+select optgroup option {
+  background: #08101f !important;
+  color: #ffffff !important;
 }
 
 button {
@@ -254,8 +270,7 @@ button {
   transition:     border-color 0.15s, box-shadow 0.15s;
 }
 .ca-input:focus {
-  border-color: var(--accent);
-  box-shadow:   0 0 0 3px var(--accent-dim);
+  border-color: rgba(224,170,94,0.35);
 }
 .ca-input::placeholder {
   color: var(--text-3);
@@ -265,7 +280,12 @@ button {
    PRIMARY BUTTON
    ════════════════════════════════════════════════════════════════ */
 .ca-btn-primary {
-  background:    linear-gradient(135deg, #6366f1, #4f46e5);
+  background: linear-gradient(
+  135deg,
+  #f7d58a,
+  #e0aa5e,
+  #c58b39
+);
   color:         #fff;
   border:        none;
   border-radius: 13px;
@@ -304,4 +324,187 @@ div:hover > .tooltip-box {
 .tooltip-wrapper:hover .tooltip-box {
   opacity: 1;
   transform: translateY(0);
+}
+
+/* =========================================================
+   FEATURE CARDS
+========================================================= */
+
+.feature-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    background 0.25s ease;
+}
+
+.feature-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(224,170,94,0.08),
+      transparent 40%
+    );
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+.feature-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(224,170,94,0.45);
+  box-shadow:
+    0 10px 40px rgba(0,0,0,0.45),
+    0 0 30px rgba(224,170,94,0.12);
+}
+
+.feature-card:hover::before {
+  opacity: 1;
+}
+
+.feature-card h3 {
+  margin-bottom: 10px;
+  font-size: 20px;
+}
+
+.feature-card p {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+/* ════════════════════════════════════════════════════════════════
+   PREMIUM DASHBOARD FOUNDATION
+════════════════════════════════════════════════════════════════ */
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(224,170,94,0.10), transparent 28%),
+    radial-gradient(circle at top right, rgba(245,201,122,0.08), transparent 24%),
+    linear-gradient(to bottom, #050816, #080b14 30%, #050816 100%);
+}
+
+/* soft floating ambient glow */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 10%, rgba(224,170,94,0.10), transparent 20%),
+    radial-gradient(circle at 80% 0%, rgba(224,170,94,0.08), transparent 18%);
+  z-index: -1;
+}
+
+/* premium glass cards */
+.ca-card {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(17,24,39,0.92),
+      rgba(10,15,28,0.96)
+    );
+
+  backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255,255,255,0.06);
+
+  box-shadow:
+    0 10px 40px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.04);
+
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.ca-card:hover {
+  transform: translateY(-4px);
+
+  border-color: rgba(224,170,94,0.28);
+
+  box-shadow:
+    0 18px 60px rgba(0,0,0,0.55),
+    0 0 30px rgba(224,170,94,0.08);
+}
+
+/* section titles */
+.ca-section-title {
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  font-weight: 800;
+}
+
+/* dashboard section */
+.ca-dashboard-section {
+  margin-top: 36px;
+}
+
+/* premium pill */
+.ca-pill {
+  background: rgba(224,170,94,0.12);
+  border: 1px solid rgba(224,170,94,0.22);
+  color: #f7d58a;
+
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* premium blur navbar */
+.ca-navbar {
+  background: rgba(6,10,20,0.72);
+  backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* hero glow title */
+.ca-hero-title {
+  background:
+    linear-gradient(
+      135deg,
+      #fff8e7 0%,
+      #f7d58a 30%,
+      #e0aa5e 65%,
+      #c58b39 100%
+    );
+
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* glowing primary button */
+.ca-btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.ca-btn-primary::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      120deg,
+      transparent,
+      rgba(255,255,255,0.16),
+      transparent
+    );
+
+  transform: translateX(-120%);
+  transition: transform 0.7s ease;
+}
+
+.ca-btn-primary:hover::before {
+  transform: translateX(120%);
 }

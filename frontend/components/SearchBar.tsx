@@ -18,34 +18,88 @@ export default function SearchBar({ onAnalyze, loading }: Props) {
   };
 
   return (
-    <div className="flex gap-3 w-full max-w-2xl">
-      <div className="flex-1 relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 w-4 h-4 pointer-events-none" />
+    <div
+      className="ca-card"
+      style={{
+        width: "100%",
+        maxWidth: "980px",
+        padding: "14px",
+        display: "flex",
+        gap: "14px",
+        alignItems: "center",
+        borderRadius: "22px",
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
+      {/* glow */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(135deg, rgba(99,102,241,0.08), transparent 45%)",
+          pointerEvents: "none",
+        }}
+      />
+
+      <div
+        style={{
+          flex: 1,
+          position: "relative",
+        }}
+      >
+        <Search
+          className="absolute left-5 top-1/2 -translate-y-1/2"
+          style={{
+            color: "var(--accent)",
+            width: "18px",
+            height: "18px",
+          }}
+        />
+
         <input
           type="text"
-          className="w-full bg-[#1e2130] border border-[#2d3348] rounded-xl pl-11 pr-4 py-3.5
-                     text-slate-100 placeholder-slate-600 text-sm
-                     focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500
-                     transition-all disabled:opacity-50"
-          placeholder="Title, TMDb link, or IMDb link…"
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={onKey}
           disabled={loading}
+          placeholder="Search movie, TMDB link, or IMDb link..."
+          className="ca-input"
+          style={{
+            paddingLeft: "52px",
+            height: "62px",
+            fontSize: "15px",
+            borderRadius: "18px",
+            background: "rgba(255,255,255,0.02)",
+            border: "1px solid rgba(255,255,255,0.06)",
+          }}
         />
       </div>
+
       <button
         onClick={submit}
         disabled={loading || !value.trim()}
-        className="bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700
-                   disabled:opacity-40 disabled:cursor-not-allowed
-                   text-white font-semibold px-6 py-3.5 rounded-xl
-                   flex items-center gap-2 transition-all text-sm whitespace-nowrap"
+        className="ca-btn-primary"
+        style={{
+          height: "62px",
+          padding: "0 30px",
+          borderRadius: "18px",
+          fontSize: "15px",
+          fontWeight: 800,
+        }}
       >
-        {loading
-          ? <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing…</>
-          : <><Search  className="w-4 h-4" />               Analyze</>
-        }
+        {loading ? (
+          <>
+            <Loader2 className="w-4 h-4 animate-spin" />
+            Analyzing...
+          </>
+        ) : (
+          <>
+            <Search className="w-4 h-4" />
+            Analyze
+          </>
+        )}
       </button>
     </div>
   );

@@ -89,8 +89,16 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
             <div
               key={entry.region}
               style={{
-                background:   bgColor,
-                border:       `1px solid var(--border)`,
+                background: `
+                  linear-gradient(
+                    180deg,
+                    rgba(17,24,39,0.92),
+                    rgba(10,15,28,0.96)
+                  )
+                `,
+                border: "1px solid rgba(255,255,255,0.06)",
+                backdropFilter: "blur(16px)",
+                boxShadow: "0 10px 40px rgba(0,0,0,0.35)",
                 borderRadius: "14px",
                 padding:      "16px 18px",
                 position:     "relative",
@@ -209,6 +217,7 @@ export default function ComparisonCards({ entries, movieTitle }: Props) {
                         region={entry.region}
                         summary={entry.reason}
                       />
+                      
                     </div>
                   </div>
                 </div>

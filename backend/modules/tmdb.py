@@ -147,18 +147,59 @@ async def fetch_by_imdb_id(imdb_id: str) -> dict | None:
 
 
 async def fetch_by_title(title: str) -> dict | None:
+
     url = "https://api.themoviedb.org/3/search/movie"
+
     try:
+
         async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, params={
-                "api_key": settings.TMDB_API_KEY,
-                "query":   title,
-            })
+
+            resp = await client.get(
+                url,
+                params={
+                    "api_key": settings.TMDB_API_KEY,
+                    "query": title,
+                }
+            )
+
             results = resp.json().get("results", [])
-            if results:
-                return await _build_movie_dict(results[0])
-    except Exception:
-        pass
+
+            if not results:
+                return None
+
+            query_clean = title.strip().lower()
+
+            # 1. EXACT TITLE MATCH
+            for movie in results:
+
+                movie_title = movie.get("title", "").strip().lower()
+
+                if movie_title == query_clean:
+                    return await _build_movie_dict(movie)
+
+            # 2. STARTS WITH MATCH
+            for movie in results:
+
+                movie_title = movie.get("title", "").strip().lower()
+
+                if movie_title.startswith(query_clean):
+                    return await _build_movie_dict(movie)
+
+            # 3. CONTAINS MATCH
+            for movie in results:
+
+                movie_title = movie.get("title", "").strip().lower()
+
+                if query_clean in movie_title:
+                    return await _build_movie_dict(movie)
+
+            # 4. FALLBACK
+            return await _build_movie_dict(results[0])
+
+    except Exception as e:
+
+        print("TITLE FETCH ERROR =", e)
+
     return None
 
 

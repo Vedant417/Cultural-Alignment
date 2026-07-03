@@ -1,5 +1,10 @@
 import { MovieInfo } from "@/types";
 
+import { Star, Check } from "lucide-react";
+import { saveFavorite } from "@/lib/api";
+
+import { useState } from "react";
+
 const LANGUAGE_MAP: Record<string, string> = {
   en: "English",    hi: "Hindi",      ta: "Tamil",
   te: "Telugu",     ml: "Malayalam",  kn: "Kannada",
@@ -13,16 +18,30 @@ const LANGUAGE_MAP: Record<string, string> = {
 export default function MovieDetailsCard({
   movie,
   originRegion,
+  analysisId,
 }: {
-  movie:        MovieInfo;
+  movie: MovieInfo;
   originRegion: string;
+  analysisId: string;
 }) {
-  const lang = LANGUAGE_MAP[movie.language] ?? movie.language.toUpperCase();
+    const lang =
+    LANGUAGE_MAP[movie.language] ??
+    movie.language.toUpperCase();
+
+  const [saved, setSaved] = useState(false);
 
   return (
+
     <div style={{
-      background:   "#141824",
-      border:       "1px solid #252d45",
+      background:
+        "linear-gradient(180deg, rgba(17,24,39,0.95), rgba(10,15,28,0.98))",
+
+      border: "1px solid rgba(255,255,255,0.06)",
+
+      backdropFilter: "blur(18px)",
+
+      boxShadow:
+        "0 20px 60px rgba(0,0,0,0.45)",
       borderRadius: "16px",
       overflow:     "hidden",
     }}>
@@ -106,6 +125,39 @@ export default function MovieDetailsCard({
                 🎞️ TMDB
               </a>
             )}
+
+            <button
+              onClick={async () => {
+                try {
+                  await saveFavorite(analysisId);
+                  setSaved(true);
+                } catch (err) {
+                  console.error(err);
+                }
+              }}
+              disabled={saved}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "6px 12px",
+                background: saved
+                  ? "rgba(16,185,129,0.15)"
+                  : "rgba(255,215,0,0.12)",
+                color: saved ? "#10b981" : "#ffd700",
+                border: saved
+                  ? "1px solid rgba(16,185,129,0.3)"
+                  : "1px solid rgba(255,215,0,0.25)",
+                borderRadius: "6px",
+                fontWeight: 700,
+                fontSize: "12px",
+                cursor: saved ? "default" : "pointer",
+                transition: "all 0.2s ease",
+              }}
+            >
+              {saved ? <Check size={14} /> : <Star size={14} />}
+              {saved ? "Saved" : "Save"}
+            </button>
           </div>
         </div>
       </div>

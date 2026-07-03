@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from bson import ObjectId
 import json
+import os
+
 
 from ..db.connection import get_db
 from ..db.models import (
@@ -57,6 +59,32 @@ def _build_doc(movie_data, origin, target_region, score_data, recommendations=No
         )
     )
 
+def save_json_file(doc, movie_data, target_region):
+
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+
+    save_dir = os.path.join(base_dir, "..", "saved_json")
+
+    os.makedirs(save_dir, exist_ok=True)
+
+    filename = (
+        f"{movie_data['title'].replace(' ', '_').lower()}_"
+        f"{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
+    )
+
+    json_data = {
+        "movie": doc.get("movie") if isinstance(doc, dict) else doc.movie.model_dump(),
+        "result": doc.get("result") if isinstance(doc, dict) else doc.result.model_dump(),
+        "target_region": target_region,
+        "searched_at": str(datetime.utcnow())
+    }
+
+    file_path = os.path.join(save_dir, filename)
+
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(json_data, f, indent=4)
+
+    print(f"✅ JSON SAVED AT: {file_path}")
 
 @router.post("/analyze")
 async def analyze(request: AnalyzeRequest):
@@ -66,8 +94,15 @@ async def analyze(request: AnalyzeRequest):
         raise HTTPException(404, "Movie not found")
 
     cached = await _get_cached(movie_data["title"], request.target_region)
+
     if cached:
-        # Return only JSON-serializable fields
+
+        save_json_file(
+            cached,
+            movie_data,
+            request.target_region
+        )
+
         return {
             "id": str(cached["_id"]),
             "movie": cached.get("movie"),
@@ -77,15 +112,38 @@ async def analyze(request: AnalyzeRequest):
 
     origin = await detect_region(movie_data)
 
-    score_data = await get_cultural_score(movie_data, request.target_region)
+    try:
+        score_data = await get_cultural_score(
+            movie_data,
+            request.target_region
+        )
+
+    except Exception as e:
+
+        print("[ANALYZE ERROR] =", str(e))
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"AI scoring failed: {str(e)}"
+        )
+
     if not score_data:
-        raise HTTPException(500, "Scoring failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Scoring returned empty response"
+        )
 
     tmdb_id = movie_data.get("tmdb_id")
     recs = await fetch_recommendations(str(tmdb_id)) if tmdb_id else []
     genres = await fetch_genres(str(tmdb_id)) if tmdb_id else []
 
     doc = _build_doc(movie_data, origin, request.target_region, score_data, recs, genres)
+
+    save_json_file(
+        doc,
+        movie_data,
+        request.target_region
+    )
 
     db = get_db()
     # Use upsert instead of insert_one to prevent duplicate entries

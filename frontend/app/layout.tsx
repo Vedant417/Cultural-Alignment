@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Link                from "next/link";
-import { ThemeProvider }   from "@/components/ThemeProvider";
 import ThemeToggle         from "@/components/ThemeToggle";
 import { LanguageProvider } from "@/hooks/useLanguage";
+import NavbarLinks from "@/components/NavbarLinks";
 
 export const metadata: Metadata = {
   title:       "CultureAlign — AI Cultural Analysis",
@@ -15,12 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" data-theme="dark">
       <head>
         {/* Prevent flash: set theme before render */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          (function() {
-            var t = localStorage.getItem('ca-theme') || 'dark';
-            document.documentElement.setAttribute('data-theme', t);
-          })();
-        `}} />
+        
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -30,16 +25,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <LanguageProvider>
-          <ThemeProvider>
 
-            <nav style={{
+            <nav className="ca-navbar" style={{
               position:        "sticky",
               top:             0,
               zIndex:          100,
               backgroundColor: "var(--nav-bg)",
               borderBottom:    "1px solid var(--border)",
-              backdropFilter:  "blur(18px)",
-              WebkitBackdropFilter: "blur(18px)",
+              background: "rgba(3,7,18,0.96)",
               boxShadow:       "var(--shadow-nav)",
               transition:      "background-color 0.25s, border-color 0.25s",
             }}>
@@ -54,73 +47,98 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 gap:            "16px",
               }}>
 
-                <Link href="/" style={{ textDecoration:"none", display:"flex", alignItems:"center", gap:"11px", flexShrink:0 }}>
-                  <div style={{
-                    width:          "38px",
-                    height:         "38px",
-                    borderRadius:   "11px",
-                    background:     "linear-gradient(135deg, #6366f1 0%, #4338ca 100%)",
-                    display:        "flex",
-                    alignItems:     "center",
-                    justifyContent: "center",
-                    fontSize:       "20px",
-                    boxShadow:      "0 4px 14px rgba(99,102,241,0.4)",
-                    flexShrink:     0,
-                  }}>
-                    🎬
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                    flexShrink: 0,
+                  }}
+                >
+                  {/* Clickable Logo + CultureAlign */}
+                  <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "14px",
+                  }}
+                >
+                    {/* Logo Icon */}
+                    <div
+                      style={{
+                        width: "42px",
+                        height: "42px",
+                        borderRadius: "12px",
+                        background: "linear-gradient(135deg, #e0aa5e 0%, #b8860b 100%)",
+                        boxShadow: "0 4px 18px rgba(224,170,94,0.35)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "20px",
+                        flexShrink: 0,
+                      }}
+                    >
+                      🎬
+                    </div>
+
+                    <span
+                      style={{
+                        fontFamily: "Sora, sans-serif",
+                        fontWeight: 800,
+                        fontSize: "18px",
+                        color: "#ffffff",
+                        letterSpacing: "-0.02em",
+                      }}
+                    >
+                      CultureAlign
+                    </span>
                   </div>
-                  <span style={{
-                    fontFamily:    "Sora, sans-serif",
-                    fontWeight:    800,
-                    fontSize:      "18px",
-                    color:         "var(--text)",
-                    letterSpacing: "-0.01em",
-                    transition:    "color 0.25s",
-                  }}>
-                    CultureAlign
+
+                  {/* & Symbol */}
+                  <span
+                    style={{
+                      color: "#8b8b8b",
+                      fontSize: "18px",
+                      fontWeight: 600,
+                    }}
+                  >
+                    &
                   </span>
-                  <span style={{
-                    fontSize:      "11px",
-                    fontWeight:    700,
-                    background:    "var(--accent-dim)",
-                    color:         "var(--accent)",
-                    border:        "1px solid var(--accent-glow)",
-                    borderRadius:  "99px",
-                    padding:       "2px 9px",
-                    letterSpacing: "0.04em",
-                  }}>
-                    AI
+
+                  {/* NON-CLICKABLE CineAI */}
+                  <span
+                    style={{
+                      fontSize: "13px",
+                      fontWeight: 700,
+                      background: "rgba(224,170,94,0.12)",
+                      color: "#e0aa5e",
+                      border: "1px solid rgba(224,170,94,0.25)",
+                      borderRadius: "999px",
+                      padding: "6px 14px",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    CineAI
                   </span>
-                </Link>
+                </div>
 
                 {/* Theme toggle — standalone, outside all Link elements */}
-                <ThemeToggle />
-
-                <div style={{ display:"flex", gap:"2px" }}>
-                  {[
-                    { href:"/",        label:"Analyze", icon:"🔍" },
-                    { href:"/compare", label:"Compare", icon:"📊" },
-                    { href:"/history", label:"History", icon:"📜" },
-                    { href:"/favorites", label:"Saved", icon:"⭐" },
-                  ].map(({ href, label, icon }) => (
-                    <Link key={href} href={href} className="nav-link">
-                      <span style={{ fontSize:"13px" }}>{icon}</span>
-                      {label}
-                    </Link>
-                  ))}
+                <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <ThemeToggle />
+                  <NavbarLinks />
                 </div>
-              </div>
+
+                </div>
             </nav>
 
             <main style={{
-              maxWidth: "1240px",
-              margin:   "0 auto",
-              padding:  "48px 28px 80px",
+              maxWidth: "1380px",
+              margin: "0 auto",
+              padding: "42px 32px 120px",
             }}>
               {children}
             </main>
 
-          </ThemeProvider>
           <div
             id="global-tooltip"
             style={{

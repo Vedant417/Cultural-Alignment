@@ -40,7 +40,7 @@ export default function ScoreBadge({
   const s = getStyle(score);
 
   return (
-    <div style={{ background: "#141824", border: "1px solid #252d45", borderRadius: "16px", overflow: "hidden" }}>
+    <div style={{ background:"linear-gradient(180deg, rgba(17,24,39,0.94), rgba(10,15,28,0.98))", border: "1px solid rgba(255,255,255,0.06)", backdropFilter: "blur(16px)", boxShadow:"0 12px 50px rgba(0,0,0,0.4)", borderRadius: "16px", overflow: "hidden" }}>
 
       {/* ── Top row: Score / Alignment / Region ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr",

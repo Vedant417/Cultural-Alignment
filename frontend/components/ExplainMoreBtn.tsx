@@ -44,10 +44,19 @@ export default function ExplainMoreBtn({ title, region, summary }: Props) {
   const doFetch = async () => {
     setState("loading");
     try {
-      const res = await fetch("/api/analyze/explain", {
-        method:  "POST",
+      const BASE =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+
+      const res = await fetch(`${BASE}/api/analyze/deep`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ title, region, summary }),
+        body: JSON.stringify({
+          movie_title: title,
+          target_region: region,
+          score: 7,
+          label: "Moderate Fit",
+          brief_reason: summary,
+        }),
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -56,12 +65,19 @@ export default function ExplainMoreBtn({ title, region, summary }: Props) {
 
       // Strip possible ```json fences before parsing
       const clean  = text.replace(/```json|```/gi, "").trim();
-      const parsed = JSON.parse(clean) as DeepAnalysis;
+      const parsed = JSON.parse(clean);
 
-      // Validate expected keys exist
-      if (!parsed.language && !parsed.religion) throw new Error("Unexpected response shape");
+      if (!parsed.sections) {
+        throw new Error("Unexpected response shape");
+      }
 
-      setData(parsed);
+      setData({
+        language: parsed.sections.language_dialogue,
+        religion: parsed.sections.religion_values,
+        censorship: parsed.sections.censorship_risk,
+        audience: parsed.sections.audience_breakdown,
+        context: parsed.sections.historical_context,
+      });
       setState("done");
     } catch (err) {
       console.error("ExplainMore error:", err);

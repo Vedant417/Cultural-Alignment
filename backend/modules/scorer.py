@@ -55,11 +55,60 @@ async def get_cultural_score(
         f']}}'
     )
 
-    raw = await call_llm(prompt, timeout=300)
-    if not raw:
-        return {}
+    try:
+        raw = await call_llm(prompt, timeout=300)
 
-    parsed = safe_parse_json(raw)
+        if not raw:
+            print("[SCORER] Empty LLM response")
+            return {
+                "score": 5,
+                "label": "Moderate Fit",
+                "reason": "Temporary AI analysis issue occurred.",
+                "content_flags": {
+                    "violence": "Unknown",
+                    "adult_content": "Unknown",
+                    "religion_sensitivity": "Unknown",
+                    "drug_glorification": "Unknown"
+                },
+                "audience_note": "Analysis temporarily unavailable.",
+                "similar_movies": []
+            }
+
+        parsed = safe_parse_json(raw)
+
+        if not parsed:
+            print("[SCORER] JSON parse failed")
+            return {
+                "score": 5,
+                "label": "Moderate Fit",
+                "reason": "AI returned invalid analysis format.",
+                "content_flags": {
+                    "violence": "Unknown",
+                    "adult_content": "Unknown",
+                    "religion_sensitivity": "Unknown",
+                    "drug_glorification": "Unknown"
+                },
+                "audience_note": "Analysis temporarily unavailable.",
+                "similar_movies": []
+            }
+
+    except Exception as e:
+
+        print("[SCORER ERROR] =", str(e))
+
+        return {
+            "score": 5,
+            "label": "Moderate Fit",
+            "reason": "AI scoring service temporarily unavailable.",
+            "content_flags": {
+                "violence": "Unknown",
+                "adult_content": "Unknown",
+                "religion_sensitivity": "Unknown",
+                "drug_glorification": "Unknown"
+            },
+            "audience_note": "Please retry analysis.",
+            "similar_movies": []
+        }
 
     if "score" in parsed:
         try:

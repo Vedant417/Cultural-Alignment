@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useLanguage } from "@/hooks/useLanguage";
 import { useTranslation } from "@/hooks/useTranslation";
-import { compareMovieAcrossRegions, compareTwoMovies, checkTwoMoviesCached } from "@/lib/api";
+import { compareMovieAcrossRegions, compareTwoMovies } from "@/lib/api";
 
 const BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 import { CompareResponse } from "@/types";
@@ -11,6 +11,8 @@ import { COUNTRIES } from "@/components/CountrySelector";
 import ComparisonCards from "@/components/ComparisonCards";
 import MovieVsMovieComparison from "@/components/MovieVsMovieComparison";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useSearchParams } from "next/navigation";
+import { getProjectTitles } from "@/lib/projects";
 
 // (optional type placeholder if not defined yet)
 type MovieVsMovieResult = any;
@@ -54,18 +56,13 @@ export default function ComparePage() {
   const { translateEntries, isTranslating } = useTranslation();
   const [movieInput, setMovieInput] = useState("");
   const [mode, setMode] = useState<"countries" | "movies">("countries");
+  const searchParams = useSearchParams();
   const [movieB, setMovieB] = useState("");
   const [selectedRegion, setSelectedRegion] = useState("India");
   const [twoMovieResult, setTwoMovieResult] = useState<any | null>(null);
   const [twoMovieCached, setTwoMovieCached] = useState(false);
 
-  const [selected, setSelected] = useState<string[]>([
-    "United States",
-    "France",
-    "Japan",
-    "UAE",
-    "South Korea",
-  ]);
+  const [selected, setSelected] = useState<string[]>([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,11 +71,28 @@ export default function ComparePage() {
   const [focused, setFocused] = useState(false);
 
   const [recommendations, setRecommendations] = useState<any[]>([]);
+  const [allowedTitles, setAllowedTitles] = useState<any[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+
+  const [showSuggestionsA, setShowSuggestionsA] = useState(false);
+  const [showSuggestionsB, setShowSuggestionsB] = useState(false);
 
   const toggleCountry = (name: string) =>
     setSelected((p) =>
       p.includes(name) ? p.filter((c) => c !== name) : [...p, name]
     );
+
+  useEffect(() => {
+    const modeParam = searchParams.get("mode");
+
+    if (modeParam === "movies") {
+      setMode("movies");
+    }
+
+    if (modeParam === "countries") {
+      setMode("countries");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (!result || !result.entries) return;
@@ -105,10 +119,55 @@ export default function ComparePage() {
     doTranslate();
   }, [lang, result, translateEntries]);
 
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const titles = await getProjectTitles();
+        setAllowedTitles(titles);
+      } finally {
+        setCatalogLoading(false);
+      }
+    };
+
+    loadProjects();
+  }, []);
+
+  const isMovieAllowed = (movieName: string) => {
+    const normalizedMovie = movieName
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
+    return allowedTitles.some((t: any) => {
+      const normalizedTitle = (t.title || "")
+        .trim()
+        .toLowerCase()
+        .replace(/\s+/g, " ");
+
+      return normalizedTitle === normalizedMovie;
+    });
+  };
+
   const handleCompare = async () => {
+
+    setError(null);
+
+    setResult(null);
+    setDisplayResult(null);
+
+    setTwoMovieResult(null);
+    setTwoMovieCached(false);
+
     // Mode A (existing)
     if (mode === "countries") {
       if (!movieInput.trim() || selected.length === 0) return;
+
+      if (catalogLoading) return;
+
+      if (!isMovieAllowed(movieInput)) {
+        setError("This title is not available in the MediaShippers catalog.");
+        return;
+      }
 
       setLoading(true);
       setError(null);
@@ -167,6 +226,26 @@ export default function ComparePage() {
         return;
       }
 
+      if (catalogLoading) return;
+
+      const movieAAllowed = isMovieAllowed(movieInput);
+      const movieBAllowed = isMovieAllowed(movieB);
+
+      if (!movieAAllowed && !movieBAllowed) {
+        setError("Movie A and B are not available in the MediaShippers catalog.");
+        return;
+      }
+
+      if (!movieAAllowed) {
+        setError("Movie A is not available in the MediaShippers catalog.");
+        return;
+      }
+
+      if (!movieBAllowed) {
+        setError("Movie B is not available in the MediaShippers catalog.");
+        return;
+      }
+
       const movieA_normalized = movieInput.trim().toLowerCase().replace(/\s+/g, " ");
       const movieB_normalized = movieB.trim().toLowerCase().replace(/\s+/g, " ");
       
@@ -200,17 +279,53 @@ export default function ComparePage() {
 
   return (
     <div>
-      <div style={{ marginBottom: "36px" }}>
-        <h1 style={{ fontSize: "32px", fontWeight: 800 }}>
-          {t("compare_hero_1")} <span style={{
-            background: "linear-gradient(135deg, #6366f1, #a78bfa)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}>{t("compare_hero_2")}</span>
+      <div
+        style={{
+          marginBottom: "34px",
+          position: "relative",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute",
+            top: "-100px",
+            right: "-120px",
+            width: "320px",
+            height: "320px",
+            borderRadius: "50%",
+            background: "rgba(99,102,241,0.10)",
+            filter: "blur(120px)",
+            pointerEvents: "none",
+          }}
+        />
+
+        <div className="ca-pill" style={{ marginBottom: "12px", width: "fit-content" }}>
+          🌍 GLOBAL COMPARISON
+        </div>
+
+        <h1
+          className="ca-hero-title"
+          style={{
+            fontSize: "clamp(22px, 4vw, 38px)",
+            fontWeight: 900,
+            lineHeight: 1,
+            letterSpacing: "-0.04em",
+            marginBottom: "18px",
+          }}
+        >
+          Compare Across Countries
         </h1>
-        <p style={{ color: "var(--text-2)" }}>
-          {t("compare_subtitle")}
+
+        <p
+          style={{
+            color: "var(--text-2)",
+            fontSize: "15px",
+            lineHeight: 1.6,
+            maxWidth: "860px",
+          }}
+        >
+          Discover how films resonate across different regions using
+          AI-powered cultural intelligence scoring and audience fit analysis.
         </p>
       </div>
 
@@ -219,7 +334,7 @@ export default function ComparePage() {
         gap: "6px",
         background: "var(--bg-deep)",
         borderRadius: "12px",
-        padding: "5px",
+        padding: "4px 10px",
         marginBottom: "24px",
         width: "fit-content",
       }}>
@@ -245,29 +360,86 @@ export default function ComparePage() {
           </button>
         ))}
       </div>
+      
+        <div style={{
+          display: "flex",
+          gap: "10px",
+          marginBottom: "16px",
+          alignItems: "center"
+        }}>
 
-      <div style={{
-        display: "flex",
-        gap: "10px",
-        marginBottom: "16px",
-        alignItems: "center"
-      }}>
-        <input
-          value={movieInput}
-          onChange={(e) => setMovieInput(e.target.value)}
-          placeholder={t("movie_placeholder")}
-          style={{
-            padding: "12px",
-            borderRadius: "10px",
-            border: "1px solid var(--border)",
-            background: "var(--bg-input)",
-            color: "var(--text)",
-            flex: 1,
-            fontSize: "14px"
-          }}
-        />
+          <div style={{ position: "relative", flex: 1 }}>
+            <input
+              value={movieInput}
+              onChange={(e) => {
+                setMovieInput(e.target.value);
+                setError(null);
+                setShowSuggestionsA(true);
+              }}
+              onFocus={() => setShowSuggestionsA(true)}
+              onBlur={() => {
+                setTimeout(() => setShowSuggestionsA(false), 150);
+              }}
+              placeholder={t("movie_placeholder")}
+              style={{
+                padding: "12px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                background: "var(--bg-input)",
+                color: "var(--text)",
+                width: "100%",
+                fontSize: "14px"
+              }}
+            />
 
-        <button onClick={handleCompare} className="ca-btn-primary">
+            {showSuggestionsA && movieInput.trim().length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "52px",
+                  left: 0,
+                  right: 0,
+                  background: "rgba(15,23,42,0.98)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  zIndex: 50,
+                  backdropFilter: "blur(18px)",
+                  maxHeight: "260px",
+                  overflowY: "auto",
+                }}
+              >
+                {allowedTitles
+                  .filter((p) =>
+                    p.title
+                      ?.trim()
+                      .toLowerCase()
+                      .startsWith(movieInput.trim().toLowerCase())
+                  )
+                  .slice(0, 8)
+                  .map((p) => (
+                    <div
+                      key={p.id}
+                      onMouseDown={() => {
+                        setMovieInput(p.title.trim());
+                        setShowSuggestionsA(false);
+                      }}
+                      style={{
+                        padding: "12px 14px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      🎬 {p.title}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
+
+  <button onClick={handleCompare} className="ca-btn-primary">
           {loading ? <Spinner /> : t("compare_btn")}
         </button>
       </div>
@@ -279,20 +451,76 @@ export default function ComparePage() {
 
       {mode === "movies" && (
         <div style={{ marginBottom: "16px", display: "flex", gap: "10px" }}>
-          <input
-            placeholder={t("movie_b_placeholder")}
-            value={movieB}
-            onChange={(e) => setMovieB(e.target.value)}
-            style={{
-              padding: "12px",
-              borderRadius: "10px",
-              border: "1px solid var(--border)",
-              background: "var(--bg-input)",
-              color: "var(--text)",
-              flex: 1,
-              fontSize: "14px"
-            }}
-          />
+          <div style={{ position: "relative", flex: 1 }}>
+            <input
+              placeholder={t("movie_b_placeholder")}
+              value={movieB}
+              onChange={(e) => {
+                setMovieB(e.target.value);
+                setError(null);
+                setShowSuggestionsB(true);
+              }}
+              onFocus={() => setShowSuggestionsB(true)}
+              onBlur={() => {
+                setTimeout(() => setShowSuggestionsB(false), 150);
+              }}
+              style={{
+                padding: "12px",
+                borderRadius: "10px",
+                border: "1px solid var(--border)",
+                background: "var(--bg-input)",
+                color: "var(--text)",
+                width: "100%",
+                fontSize: "14px"
+              }}
+            />
+
+            {showSuggestionsB && movieB.trim().length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "52px",
+                  left: 0,
+                  right: 0,
+                  background: "rgba(15,23,42,0.98)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "12px",
+                  overflow: "hidden",
+                  zIndex: 50,
+                  backdropFilter: "blur(18px)",
+                  maxHeight: "260px",
+                  overflowY: "auto",
+                }}
+              >
+                {allowedTitles
+                  .filter((p) =>
+                    p.title
+                      ?.trim()
+                      .toLowerCase()
+                      .startsWith(movieB.trim().toLowerCase())
+                  )
+                  .slice(0, 8)
+                  .map((p) => (
+                    <div
+                      key={p.id}
+                      onMouseDown={() => {
+                        setMovieB(p.title.trim());
+                        setShowSuggestionsB(false);
+                      }}
+                      style={{
+                        padding: "12px 14px",
+                        cursor: "pointer",
+                        borderBottom: "1px solid rgba(255,255,255,0.05)",
+                        color: "var(--text)",
+                        fontSize: "13px",
+                      }}
+                    >
+                      🎬 {p.title}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
 
           <select
             value={selectedRegion}
@@ -326,8 +554,8 @@ export default function ComparePage() {
               onClick={() => toggleCountry(c.name)}
               style={{
                 margin: "4px",
-                padding: "6px 10px",
-                borderRadius: "8px",
+                padding: "10px 14px",
+                borderRadius: "14px",
                 border: "1px solid var(--border)",
                 background: selected.includes(c.name)
                   ? "var(--accent-dim)"
@@ -357,7 +585,7 @@ export default function ComparePage() {
           border: "1px solid var(--accent-glow)",
           borderRadius: "99px",
           padding: "4px 12px",
-          fontSize: "12px",
+          fontSize: "11px",
           color: "var(--accent)",
           marginBottom: "12px",
         }}>
@@ -377,7 +605,9 @@ export default function ComparePage() {
       {mode === "countries" && (displayResult || result) && !loading && (displayResult || result)?.entries && (
         <div className="fade-up">
           <ComparisonCards
-            entries={(displayResult || result)!.entries}
+            entries={[...(displayResult || result)!.entries].sort(
+              (a, b) => (b.score || 0) - (a.score || 0)
+            )}
             movieTitle={(displayResult || result)!.movie.title}
           />
         </div>

@@ -67,8 +67,8 @@ async def call_llm(prompt: str, timeout: int = 60) -> str:
                 max_tokens=1024,
             )
             return resp.choices[0].message.content
-        except Exception:
-            pass
+        except Exception as e:
+            print("[GROQ ERROR] =", str(e))
 
     result = await ollama_generate(prompt, timeout=timeout)
     if result:

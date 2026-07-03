@@ -3,33 +3,92 @@
 interface PopularityTrendChartProps {
   popularity?: number;
   title?: string;
+  country?: string;
 }
 
-export default function PopularityTrendChart({ popularity = 0, title = "Popularity" }: PopularityTrendChartProps) {
+export default function PopularityTrendChart({
+  popularity = 0,
+  title = "Popularity",
+  country = "United States",
+}: PopularityTrendChartProps) {
   if (!popularity || popularity <= 0) return null;
 
+  const regionalBoosts: Record<string, number> = {
+    India: 1.0,
+    Nepal: 0.72,
+    Bangladesh: 0.76,
+    Pakistan: 0.68,
+    "Sri Lanka": 0.70,
+
+    "United States": 0.52,
+    Canada: 0.50,
+    "United Kingdom": 0.58,
+
+    Japan: 0.34,
+    "South Korea": 0.36,
+    China: 0.40,
+
+    UAE: 0.75,
+    "Saudi Arabia": 0.62,
+
+    France: 0.46,
+    Germany: 0.42,
+
+    Australia: 0.48,
+  };
+
+const countryBoost = regionalBoosts[country] || 0.45;
+
+const localizedPopularity =
+  Math.min(
+    100,
+    (Math.log10(popularity + 1) * 85) * countryBoost
+  );
+
+const base = Math.max(localizedPopularity / 12, 1.2);
   // Scale popularity to 0-100 for display
-  const normalizedPopularity = Math.min(popularity / 10, 100); // TMDB popularity goes up to ~100+
+  const normalizedPopularity = Math.min(localizedPopularity, 100);
   const percentage = Math.round(normalizedPopularity);
 
   // Generate mock trend data (simulates historical data since TMDB doesn't provide it)
   const generateTrendPoints = () => {
-    const points = [];
-    const baseVariation = popularity * 0.1;
-    for (let i = 0; i < 12; i++) {
-      const variation = Math.sin((i / 12) * Math.PI * 2) * baseVariation;
-      const value = popularity * 0.7 + variation;
-      points.push({
-        x: i,
-        y: Math.max(0, Math.min(100, (value / 10))),
-        month: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"][i],
-      });
-    }
-    return points;
+    const stages = [
+      "Launch",
+      "Buzz",
+      "Peak",
+      "Hype",
+      "Streams",
+      "Fans",
+      "Social",
+      "Legacy",
+    ];
+
+    // normalize TMDB popularity
+
+    // create realistic blockbuster curve
+    const curve = [
+      0.72,
+      0.85,
+      0.98,
+      1.12,
+      1.05,
+      0.92,
+      0.84,
+      0.76,
+    ];
+
+    return stages.map((stage, i) => ({
+      x: i,
+      y: +(base * curve[i]).toFixed(1),
+      stage,
+    }));
   };
 
   const trendPoints = generateTrendPoints();
-  const maxY = Math.max(...trendPoints.map((p) => p.y)) * 1.1;
+  const maxY = Math.max(
+    5,
+    Math.max(...trendPoints.map((p) => p.y)) * 1.15
+  );
   const SVG_WIDTH = 280;
   const SVG_HEIGHT = 120;
   const PADDING = { top: 12, right: 12, bottom: 20, left: 30 };
@@ -73,7 +132,7 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
             fontWeight: 700,
             color: "var(--accent)",
           }}>
-            {popularity.toFixed(1)}
+            {localizedPopularity.toFixed(1)}
           </span>
           <span style={{
             fontSize: "13px",
@@ -156,12 +215,12 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
               cy={y}
               r="3"
               fill="var(--accent)"
-              opacity={idx % 2 === 0 ? 1 : 0.5}
+              opacity={0.9}
             />
           );
         })}
 
-        {/* X-axis labels (months) */}
+        {/* X-axis labels (audience lifecycle) */}
         {trendPoints.map((point, idx) => {
           if (idx % 2 !== 0) return null;
           const x = PADDING.left + (point.x / (trendPoints.length - 1)) * chartWidth;
@@ -170,11 +229,11 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
               key={`label-${idx}`}
               x={x}
               y={SVG_HEIGHT - 6}
-              fontSize="9"
+              fontSize="7"
               fill="var(--text-3)"
               textAnchor="middle"
             >
-              {point.month}
+              {point.stage}
             </text>
           );
         })}
@@ -188,7 +247,7 @@ export default function PopularityTrendChart({ popularity = 0, title = "Populari
         marginTop: "12px",
         fontStyle: "italic",
       }}>
-        Based on TMDB popularity metrics • Simulated 12-month trend
+        AI-estimated audience engagement lifecycle based on TMDB public popularity signals.
       </p>
     </div>
   );

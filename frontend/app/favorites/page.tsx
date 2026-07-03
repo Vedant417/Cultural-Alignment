@@ -59,15 +59,44 @@ export default function FavoritesPage() {
   return (
     <div>
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "28px" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-end",
+          marginBottom: "40px",
+        }}
+      >
         <div>
-          <h1 style={{ fontSize: "28px", fontWeight: 800, marginBottom: "8px" }}>
-            ⭐ Saved Analyses
+          <div className="ca-pill" style={{ marginBottom: "16px", width: "fit-content" }}>
+            ⭐ SAVED INTELLIGENCE
+          </div>
+
+          <h1
+            className="ca-hero-title"
+            style={{
+              fontSize: "54px",
+              fontWeight: 900,
+              lineHeight: 1,
+              letterSpacing: "-0.04em",
+              marginBottom: "16px",
+            }}
+          >
+            Saved Analyses
           </h1>
-          <p style={{ color: "var(--text-2)" }}>
-            Your favorite cultural fit analyses saved for quick reference.
+
+          <p
+            style={{
+              color: "var(--text-2)",
+              fontSize: "18px",
+              maxWidth: "720px",
+              lineHeight: 1.7,
+            }}
+          >
+            Your favorite cultural intelligence analyses saved for quick access and deeper review.
           </p>
         </div>
+
         <LanguageSwitcher compact />
       </div>
 

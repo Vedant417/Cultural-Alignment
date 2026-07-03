@@ -14,6 +14,7 @@ import GenreButtons from "@/components/GenreButtons";
 import PopularityTrendChart from "@/components/PopularityTrendChart";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
 import VoiceInput from "@/components/VoiceInput";
+import { getProjectTitles } from "@/lib/projects";
 
 
 function Spinner({ size = 36 }: { size?: number }) {
@@ -98,6 +99,14 @@ function AnalyzeContent() {
   const [displayResult, setDisplayResult] = useState<AnalysisResult | null>(null);
   const [displayMovie, setDisplayMovie] = useState<MovieInfo | null>(null);
   const [inputFocused, setInputFocused] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+  const [allowedTitles, setAllowedTitles] = useState<any[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   /* Pre-load from history redirect (Next.js params: movie/region) */
   useEffect(() => {
@@ -118,8 +127,22 @@ function AnalyzeContent() {
     }
   }, [searchParams, router, t]);
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+useEffect(() => {
+  const loadProjects = async () => {
+    try {
+      const titles = await getProjectTitles();
+      setAllowedTitles(titles);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
+  loadProjects();
+}, []);
+
+useEffect(() => {
+  if (typeof window === "undefined") return;
+
     const params = new URLSearchParams(window.location.search);
     const t = params.get("title");
     const r = params.get("region");
@@ -135,7 +158,31 @@ function AnalyzeContent() {
   }, []);
 
   const handleAnalyze = async () => {
-    if (!movie.trim()) return;
+    setError(null);
+    setResult(null);
+    setDisplayResult(null);
+    if (!movie.trim()) return;    
+
+    if (catalogLoading) return;
+
+  const normalizedMovie = movie
+  .trim()
+  .toLowerCase()
+  .replace(/\s+/g, " ");
+
+  const exists = allowedTitles.some((t: any) => {
+    const normalizedTitle = (t.title || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ");
+
+    return normalizedTitle === normalizedMovie;
+  });
+
+  if (!exists) {
+    setError("This title is not available in the MediaShippers catalog.");
+    return;
+  }
     setLoading(true);
     setError(null);
     setResult(null);
@@ -187,7 +234,7 @@ function AnalyzeContent() {
   return (
     <div>
 
-      <div style={{ marginBottom: "40px", position: "relative" }}>
+      <div style={{ marginBottom: "24px", position: "relative" }}>
 
         {/* Background glow — decorative */}
         <div style={{
@@ -222,17 +269,19 @@ function AnalyzeContent() {
 
           {/* Hero heading */}
           <h1 style={{
-            fontSize: "clamp(28px, 5vw, 48px)",
+            fontSize: "clamp(22px, 4vw, 38px)",
             fontFamily: "Sora, sans-serif",
-            fontWeight: 800,
-            color: "var(--text)",
-            marginBottom: "14px",
-            letterSpacing: "-0.03em",
-            lineHeight: 1.1,
-          }}>
+            fontWeight: 900,
+            lineHeight: 1,
+            letterSpacing: "-0.05em",
+            marginBottom: "22px",
+            maxWidth: "1100px",
+            color: "#f8fafc",
+          }}
+          >
             {t("Global Cultural Intelligence")}
             <span style={{
-              background: "linear-gradient(135deg, #6366f1, #a78bfa)",
+              background: "linear-gradient(135deg,#38bdf8,#8b5cf6)",
               WebkitBackgroundClip: "text",
               WebkitTextFillColor: "transparent",
               backgroundClip: "text",
@@ -242,30 +291,37 @@ function AnalyzeContent() {
           </h1>
 
           <p style={{
-            fontSize: "16px",
-            color: "var(--text-2)",
-            marginBottom: "32px",
-            maxWidth: "540px",
+            fontSize: "15px",
+            color: "rgba(255,255,255,0.68)",
+            marginBottom: "42px",
+            maxWidth: "720px",
             lineHeight: 1.7,
+            fontWeight: 500,
           }}>
-            {t("Transform how you understand movie reception across cultures. Our AI analyzes cultural nuances, content flags, and audience alignment for any film worldwide. Uncover insights, compare regions, and make informed entertainment choices with ease.")}
+            {t("Analyze how films resonate across cultures using AI-powered audience intelligence, censorship insights, emotional alignment, and regional compatibility scoring.")}
           </p>
 
           {/* ── Search box ── */}
           <div style={{
-            background: "var(--bg-card)",
-            border: `1.5px solid ${inputFocused ? "var(--accent)" : "var(--border)"}`,
+            background: "rgba(15,23,42,0.78)",
+            border:
+              mounted && inputFocused
+                ? "1px solid rgba(99,102,241,0.7)"
+                : "1px solid rgba(255,255,255,0.08)",
             borderRadius: "18px",
             padding: "6px",
             display: "flex",
-            gap: "8px",
+            gap: "14px",
             alignItems: "center",
             flexWrap: "wrap",
-            maxWidth: "820px",
-            boxShadow: inputFocused
-              ? `0 0 0 4px var(--accent-dim), var(--shadow-card)`
-              : "var(--shadow-card)",
-            transition: "border-color 0.2s, box-shadow 0.2s",
+            maxWidth: "1050px",
+            backdropFilter: "blur(18px)",
+            boxShadow:
+              mounted && inputFocused
+                ? "0 0 0 4px rgba(99,102,241,0.15)"
+                : "0 10px 40px rgba(0,0,0,0.45)",
+            transition: "all 0.25s ease",
+
           }}>
             {/* Movie input */}
             <div style={{ flex: "1 1 240px", position: "relative", minWidth: "220px" }}>
@@ -279,13 +335,31 @@ function AnalyzeContent() {
               }}>
                 🎬
               </span>
+              
               <input
+                autoFocus={false}
                 type="text"
                 value={movie}
-                onChange={(e) => setMovie(e.target.value)}
+                onChange={(e) => {
+                  setMovie(e.target.value);
+
+                  setError(null);
+                  setResult(null);
+                  setDisplayResult(null);
+                }}
                 onKeyDown={(e) => e.key === "Enter" && !loading && handleAnalyze()}
-                onFocus={() => setInputFocused(true)}
-                onBlur={() => setInputFocused(false)}
+                onFocus={() => {
+                  setInputFocused(true);
+                  setShowSuggestions(true);
+                }}
+
+                onBlur={() => {
+                  setInputFocused(false);
+
+                  setTimeout(() => {
+                    setShowSuggestions(false);
+                  }, 150);
+                }}
                 placeholder={t("search_placeholder")}
                 disabled={loading}
                 style={{
@@ -293,12 +367,61 @@ function AnalyzeContent() {
                   background: "transparent",
                   border: "none",
                   outline: "none",
-                  padding: "13px 14px 13px 40px",
+                  padding: "10px 12px 10px 38px",
+                  fontSize: "14px",
                   color: "var(--text)",
-                  fontSize: "15px",
+                  fontWeight: 500,
                   opacity: loading ? 0.6 : 1,
                 }}
               />
+
+              {/* ADD THIS HERE */}
+              {showSuggestions && movie.trim().length > 0 && (
+                <div
+                  style={{
+                    position: "absolute",
+                    top: "52px",
+                    left: 0,
+                    right: 0,
+                    background: "rgba(15,23,42,0.98)",
+                    border: "1px solid var(--border)",
+                    borderRadius: "12px",
+                    overflow: "hidden",
+                    zIndex: 50,
+                    backdropFilter: "blur(18px)",
+                    maxHeight: "260px",
+                    overflowY: "auto",
+                  }}
+                >
+                  {allowedTitles
+                    .filter((p) =>
+                      p.title
+                        ?.trim()
+                        .toLowerCase()
+                        .startsWith(movie.trim().toLowerCase())
+                    )
+                    .slice(0, 8)
+                    .map((p) => (
+                      <div
+                        key={p.id}
+                        onMouseDown={() => {
+                          setMovie(p.title.trim());
+                          setShowSuggestions(false);
+                        }}
+                        style={{
+                          padding: "12px 14px",
+                          cursor: "pointer",
+                          borderBottom:
+                            "1px solid rgba(255,255,255,0.05)",
+                          color: "var(--text)",
+                          fontSize: "13px",
+                        }}
+                      >
+                        🎬 {p.title}
+                      </div>
+                    ))}
+                </div>
+              )}
               {isLink && (
                 <span style={{
                   position: "absolute",
@@ -318,7 +441,7 @@ function AnalyzeContent() {
             </div>
 
             {/* Divider */}
-            <div style={{ width: "1px", height: "30px", background: "var(--border)", flexShrink: 0 }} />
+            <div style={{ width: "1px", height: "24px", background: "var(--border)", flexShrink: 0 }} />
 
             {/* Country selector */}
             <div style={{ flexShrink: 0 }}>
@@ -342,7 +465,13 @@ function AnalyzeContent() {
               onClick={handleAnalyze}
               disabled={loading || !movie.trim()}
               className="ca-btn-primary"
-              style={{ flexShrink: 0 }}
+              style={{
+                flexShrink: 0,
+                height: "52px",
+                padding: "0 24px",
+                borderRadius: "14px",
+                fontSize: "14px",
+              }}
             >
               {loading ? (
                 <> <Spinner size={15} /> {t("analyzing_btn")} </>
@@ -352,43 +481,6 @@ function AnalyzeContent() {
             </button>
           </div>
 
-          {/* Input type hints */}
-          <div style={{ display: "flex", gap: "8px", marginTop: "12px", flexWrap: "wrap" }}>
-            {[
-              { icon: "📝", text: '"MOVIE TITLE"'},
-              { icon: "🔗", text: "themoviedb.org/movie/27205" },
-              { icon: "🎬", text: "imdb.com/title/tt1375666" },
-              { icon: "📱", text: "m.imdb.com/title/tt1375666" },
-            ].map(({ icon, text }) => (
-              <button
-                key={text}
-                onClick={() => { setMovie(text.replace(/"/g, " ")); }}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "5px",
-                  fontSize: "12px",
-                  color: "var(--text-3)",
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "8px",
-                  padding: "4px 10px",
-                  cursor: "pointer",
-                  transition: "all 0.15s",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.color = "var(--text)";
-                  e.currentTarget.style.borderColor = "var(--accent)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.color = "var(--text-3)";
-                  e.currentTarget.style.borderColor = "var(--border)";
-                }}
-              >
-                {icon} {text}
-              </button>
-            ))}
-          </div>
           {/* LanguageSwitcher — immediately after Analyze button */}
           <div style={{ marginTop: "12px", marginBottom: "8px" }}>
             <LanguageSwitcher />
@@ -460,6 +552,7 @@ function AnalyzeContent() {
                 <MovieDetailsCard
                   movie={displayMovie || result.movie}
                   originRegion={result.origin_region?.region ?? t("unknown")}
+                  analysisId={result.id}
                 />
               </div>
             </div>
@@ -501,7 +594,7 @@ function AnalyzeContent() {
 
               {/* Content Flags */}
               <div className="ca-card">
-                <ContentFlags flags={(displayResult || result.result).content_flags} />
+                <ContentFlags flags={(displayResult || result?.result || {}).content_flags || {}} />
               </div>
 
               {/* Popularity Trend */}
@@ -510,6 +603,7 @@ function AnalyzeContent() {
                   <PopularityTrendChart 
                     popularity={result.movie.popularity} 
                     title={result.movie.title}
+                    country={country}
                   />
                 </div>
               )}
@@ -530,35 +624,92 @@ function AnalyzeContent() {
         <div style={{ marginTop: "8px" }}>
           <div style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-            gap: "14px",
+            gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+            gap: "20px",
           }}>
             {[
-              { icon: "🔍", title: t("feature_smart_search"), desc: t("feature_smart_search_desc") },
-              { icon: "🌍", title: t("feature_countries"), desc: t("feature_countries_desc") },
-              { icon: "⚡", title: t("feature_cache"), desc: t("feature_cache_desc") },
-              { icon: "📊", title: t("feature_compare"), desc: t("feature_compare_desc") },
-              { icon: "💬", title: t("feature_ai"), desc: t("feature_ai_desc") },
-              { icon: "📜", title: t("feature_history"), desc: t("feature_history_desc") },
-            ].map(({ icon, title, desc }) => (
-              <div
-                key={title}
-                className="ca-card"
-                style={{ padding: "20px" }}
-              >
-                <div style={{ fontSize: "26px", marginBottom: "10px" }}>{icon}</div>
-                <h3 style={{ color: "var(--text)", marginBottom: "6px" }}>{title}</h3>
-                <p style={{ fontSize: "13px", color: "var(--text-3)", lineHeight: 1.55 }}>{desc}</p>
-              </div>
-            ))}
+  { icon: "🔍", title: t("feature_smart_search"), desc: t("feature_smart_search_desc") },
+  { icon: "🌍", title: t("feature_countries"), desc: t("feature_countries_desc") },
+  { icon: "⚡", title: t("feature_cache"), desc: t("feature_cache_desc") },
+  { icon: "📊", title: t("feature_compare"), desc: t("feature_compare_desc") },
+  { icon: "💬", title: t("feature_ai"), desc: t("feature_ai_desc") },
+
+  {
+    icon: "🎬",
+    title: "CineAI Predictor",
+    desc: "Predict commercial viability, ROI potential, emotional arcs and audience engagement."
+  },
+
+  { icon: "📜", title: t("feature_history"), desc: t("feature_history_desc") },
+].map(({ icon, title, desc }) => (
+  <a
+    key={title}
+    href={
+      title === "CineAI Predictor"
+        ? "/cineai"
+        : title === t("feature_history")
+        ? "/history"
+        : title === t("feature_compare")
+        ? "/compare?mode=movies"
+        : title === t("feature_countries")
+        ? "/compare?mode=countries"
+        : title === t("feature_cache")
+        ? "/favorites"
+        : "#"
+    }
+    style={{ textDecoration: "none" }}
+  >
+    <div
+      className="ca-card feature-card"
+      style={{
+        padding: "18px",
+        height: "100%",
+        minHeight: "170px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "flex-start",
+        cursor: "pointer",
+        transition: "all 0.2s ease",
+        transform: "translateY(0px)",
+      }}
+    >
+      <div style={{ fontSize: "22px", marginBottom: "8px" }}>
+        {icon}
+      </div>
+
+      <h3
+        style={{
+          color: "var(--text)",
+          marginBottom: "6px"
+        }}
+      >
+        {title}
+      </h3>
+
+      <p
+        style={{
+          fontSize: "12px",
+          color: "var(--text-3)",
+          lineHeight: 1.55
+        }}
+      >
+        {desc}
+      </p>
+    </div>
+  </a>
+))}
           </div>
         </div>
       )}
+
     </div>
   );
 }
 
 export default function HomePage() {
+
+  const router = useRouter();
+  
   return (
     <Suspense fallback={
       <div style={{ color: "var(--text-3)", padding: "60px", textAlign: "center" }}>

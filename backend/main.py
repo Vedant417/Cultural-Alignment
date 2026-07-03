@@ -1,9 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .routers import analyze, history, translate, compare
+from .routers import analyze, history, translate, compare, cineai
 from .db.connection import connect_db, close_db, get_db
 from .modules.ollama_client import get_ollama_model
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI(
     title="CultureAlign API",
@@ -31,6 +35,7 @@ app.include_router(analyze.router)
 app.include_router(history.router)
 app.include_router(translate.router)
 app.include_router(compare.router)
+app.include_router(cineai.router)
 
 
 @app.get("/")
